@@ -26,21 +26,6 @@ def scatter_all(df):
     plt.show()
 
 
-def scatter(df, x_column, y_column, color_col=None):
-    if color_col is not None:
-        color_scale = np.unique(df.data[:, color_col])
-        colors = np.linspace(0, 1, len(color_scale))
-        color_dict = dict(zip(color_scale, colors))
-        color_func = np.vectorize(lambda x: color_dict[x])
-        color_df = color_func(df.data[:, color_col])
-        plt.scatter(x=df.data[:, x_column], y=df.data[:, y_column], c=color_df)
-    else:
-        plt.scatter(x=df.data[:, x_column], y=df.data[:, y_column])
-    plt.xlabel(df.header[x_column])
-    plt.ylabel(df.header[y_column])
-    plt.show()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, default="data/dataset_train.csv", help="file to describe, shall be csv format")
