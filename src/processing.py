@@ -195,6 +195,3 @@ class LogReg:
     def save_model(self, file):
         with Path(file).open(mode='wb') as fd:
             pickle.dump(self.__dict__, fd)
-
-class NeuralNetwork:
-
