@@ -21,6 +21,7 @@ class LogReg:
         self.cost_history = np.zeros((nb_itertion, nb_class))
 
     def describe(self):
+        """Print model characterisic"""
         print("Model: {}".format(self.name))
         print("Weights :\n{}".format(self.weight))
         print("\nPerformance:")
@@ -28,7 +29,7 @@ class LogReg:
 
     def print_accuracy(self, class_name=None):
         """
-
+        Print model's performance scores (accuracy, recall, precision, F1score)
         :param class_name: list containing the name of each class in order
         """
         class_name = class_name if class_name is not None else [str(elm) for elm in range(self.nb_class)]
@@ -49,7 +50,8 @@ class LogReg:
         print("{title:<{width1}}{val:<{width2}}".format(
             title="Accuracy", width1=col_padding[0], val=str(round(self.accuracy * 100, 2)) + "%", width2=col_padding[1]))
 
-    def plot_training(self, class_name=None):
+    def plot_training(self):
+        """Plot training curve convergence"""
         fig = plt.figure("Training convergence")
         for i in range(self.nb_class):
             plt.plot(self.cost_history[:, i])
@@ -60,6 +62,7 @@ class LogReg:
         plt.show()
 
     def load_model(self, file):
+        """load an existing model from a pickle file"""
         with Path(file).open(mode='rb') as fd:
             try:
                 model = pickle.load(fd)
@@ -80,7 +83,7 @@ class LogReg:
     @staticmethod
     def _to_class_id(Y_pred):
         """
-
+        Create a m by 1 matrix with m the number of sample. Takes  as an input the Y_pred matrix createdFor each sample, the class id with most class id matrix for each sample the ass
         :param Y_pred: m by nb_class matrix, with m nb of sample
         :return: m by 1 matrix -> predicted class number
         """
@@ -192,3 +195,6 @@ class LogReg:
     def save_model(self, file):
         with Path(file).open(mode='wb') as fd:
             pickle.dump(self.__dict__, fd)
+
+class NeuralNetwork:
+

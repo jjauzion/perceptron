@@ -13,6 +13,6 @@ except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, 
     print("Could not read file '{}' because : {}".format(Path(args.file), err))
     exit(0)
 df.describe()
-# df.pair_plot(hue_col=1)
-df.scatter(ycol=1)
+df.pair_plot()
+# df.scatter(xcol=2, ycol=4)
 print("finish")
