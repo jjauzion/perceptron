@@ -176,7 +176,7 @@ class LogReg:
         Make prediction based on x
         :param X: matrix of shape (n_samples, n_feature)
         :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing
-        :return: ((n_feature x nb_of_class matrx), (n_feature x 1) matrix)
+        :return: ((n_feature x nb_of_class matrix), (n_feature x 1) matrix)
         """
         if self.weight is None:
             self.weight = np.zeros((X.shape[1], 1))
@@ -197,9 +197,32 @@ class LogReg:
             pickle.dump(self.__dict__, fd)
 
 
+# ##################### NEURAL NETWORK ########################
+
+
 class NeuralNetwork:
+    """
+    Build a custom Neural Network.
+    List of Attributes:
+    weight: List of numpy array with the weight for each layers.
+            Each element is a matrix of size (S(j+1), S(j) + 1) with S(j) number of neurons in layer j
+    unit: List of numpy array with the neuron value for each layer.
+          Each element of the list is a vector of size n with n the number of neurons in layer j
+    delta: List of numpy array with the delta value for each layer. The delta is compute for the backpropagation.
+          Each element of the list is a vector of size n with n the number of neurons in layer j
+    """
 
     def __init__(self, nb_itertion=1000, learning_rate=0.1, nb_class=1, regularization_rate=0, topology=None, model_name=None):
+        """
+
+        :param nb_itertion:
+        :param learning_rate:
+        :param nb_class:
+        :param regularization_rate:
+        :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
+        layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
+        :param model_name:
+        """
         self.topology = [] if topology is None else topology
         self.nb_iter = nb_itertion
         self.learning_rate = learning_rate
@@ -212,6 +235,8 @@ class NeuralNetwork:
         self.f1score = [-1]
         self.accuracy = -1
         self.weight = None
+        self.unit = None
+        self.delta = None
         self.cost_history = np.zeros((nb_itertion, nb_class))
 
     def describe(self):
@@ -274,6 +299,10 @@ class NeuralNetwork:
     @staticmethod
     def _sigmoid(X):
         return 1 / (1 + np.exp(-X))
+
+    @staticmethod
+    def _derivative_sigmoid(X):
+        return NeuralNetwork._sigmoid(X) * (1 - NeuralNetwork._sigmoid(X))
 
     @staticmethod
     def _to_class_id(Y_pred):
@@ -341,6 +370,60 @@ class NeuralNetwork:
             Y[:, i] = [is_class(val, i) for val in y]
         return Y
 
+    def _init_neural_network(self, input_vector):
+        """
+        initialiaze the network matrices according to the network topology.
+        Note that for convenience, self.z[0] and self.delta[0] are initialized althought they are useless for the
+        input layer. This allow a uniform definition of j for the layer number when calling the matrices.
+        :param input_vector: vector with the input value
+        :return:
+        """
+        self.weight = [np.random.rand(self.topology[1], self.topology[0] + 1)]
+        self.unit = [input_vector]
+        self.delta = [np.zeros(self.topology[0])]
+        for j in range(1, len(self.topology)):
+            self.unit.append(np.ones(self.topology[j]))
+            self.delta.append([np.ones(self.topology[j])])
+            if j < len(self.topology):
+                self.weight.append(np.random.rand(self.topology[j + 1], self.topology[j] + 1))
+
+    def _compute_layer_val(self, j):
+        """
+        compute the neuron value from the previous layer
+        a: vector of shape 1 + number of unit in layer j
+        self.weight[j]: matrix of size (S(j+1), S(j) + 1) with S(j) number of neurons in layer jx
+        :param j: layer number to be computed
+        :return: z[j], unit[j]
+        """
+        a = np.insert(self.unit[j - 1], 0, 1)
+        z = np.matmul(self.weight[j - 1], a)
+        return NeuralNetwork._sigmoid(z)
+
+    def _forward_propagation(self):
+        for j in range(1, len(self.topology)):
+            self.unit[j] = self._compute_layer_val(j)
+
+    def backpropagation(self, y):
+        """
+
+        :param y: expected value. Vector of size n with n the number of unit in the last layer.
+        :return:
+        """
+        self.delta[-1] = self.unit[-1] - y
+        for j in range(len(self.topology) - 1, 1, -1):
+            self.delta[j] = np.matmul(self.delta[j + 1], self.weight[j]) * (self.unit[j] * (1 - self.unit[j]))
+
+
+    def train(self, X, Y, verbose=1):
+        """
+
+        :param X:
+        :param Y:
+        :param verbose:
+        :return:
+        """
+
+
     def fit(self, X, y, verbose=1):
         """
 
@@ -371,7 +454,7 @@ class NeuralNetwork:
         Make prediction based on x
         :param X: matrix of shape (n_samples, n_feature)
         :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing
-        :return: ((n_feature x nb_of_class matrx), (n_feature x 1) matrix)
+        :return: ((n_feature x nb_of_class matrix), (n_feature x 1) matrix)
         """
         if self.weight is None:
             self.weight = np.zeros((X.shape[1], 1))
