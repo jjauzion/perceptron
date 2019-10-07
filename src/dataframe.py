@@ -42,7 +42,7 @@ class DataFrame:
     def count_nan(self, axis=0):
         return np.sum(np.isnan(self.data), axis=axis)
 
-    # DATA ANALYSIS
+    # DATA ANALYSIS FUNCTION
 
     def describe(self, floating_point=2):
         self.count_nan()
@@ -63,13 +63,14 @@ class DataFrame:
     def pair_plot(self, hue_col=None):
         plotlib.pair_plot(self.data, self.header, hue_col)
 
-    # DATAFRAME MODIFICATION
+    # DATAFRAME MODIFICATION FUNCTION
 
-    def scale(self, scale_type="minmax", first_col=0):
+    def scale(self, scale_type="minmax", first_col=0, exclude_col=None):
         """
 
         :param scale_type: minmax (default) or meannorm
         :param first_col: nb of column at the beginning of the df that shall not be scaled
+        :param exclude_col: int -> index of one column to exclude of the scaling
         :return:
         """
         if self.scaler is None:
@@ -79,7 +80,15 @@ class DataFrame:
                 self.scaler = preprocessing.MeanNormScaler()
             else:
                 raise ValueError("scale type unknown. Got '{}'".format(scale_type))
-        self.scaler.fit_transform(self.data[:, first_col:], inplace=True)
+        if exclude_col is None:
+            self.scaler.fit_transform(self.data[:, first_col:], inplace=True)
+        else:
+            self.data = np.insert(
+                self.scaler.fit_transform(np.delete(self.data[:, first_col:], exclude_col, axis=1)),
+                exclude_col,
+                self.data[:, exclude_col],
+                axis=1
+            )
 
     def drop_column(self, col_index):
         self.data = np.delete(self.data, col_index, axis=1)

@@ -208,8 +208,10 @@ class NeuralNetwork:
             Each element is a matrix of size (S(j+1), S(j) + 1) with S(j) number of neurons in layer j
     unit: List of numpy array with the neuron value for each layer.
           Each element of the list is a vector of size n with n the number of neurons in layer j
-    delta: List of numpy array with the delta value for each layer. The delta is compute for the backpropagation.
-          Each element of the list is a vector of size n with n the number of neurons in layer j
+    delta: List of numpy array with the delta value for each unit of each layer. The delta is compute for the backpropagation.
+           Each element of the list is a vector of size n with n the number of neurons in layer j
+    w_delta: List of numpy array with the delta value for each weight of each layer. The delta is computed after the backpropagation.
+             Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
     def __init__(self, nb_itertion=1000, learning_rate=0.1, nb_class=1, regularization_rate=0, topology=None, model_name=None):
@@ -237,6 +239,7 @@ class NeuralNetwork:
         self.weight = None
         self.unit = None
         self.delta = None
+        self.w_delta = None
         self.cost_history = np.zeros((nb_itertion, nb_class))
 
     def describe(self):
@@ -335,18 +338,6 @@ class NeuralNetwork:
         regul = self.regularization / (2 * X.shape[0]) * (np.matmul(self.weight.T, self.weight))
         return np.diagonal(cost + regul)
 
-    def _update_weight(self, X, Y, H):
-        """
-
-        self.weight : n by nb_class matrix, with n the number of parameter
-        :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :param Y: m by nb_class matrix, with m nb of sample
-        :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
-        :return: n by nb_class matrix
-        """
-        m = X.shape[0]
-        return self.weight - self.learning_rate * (np.matmul(X.T, H - Y) / m + self.regularization * self.weight / m)
-
     def _compute_accuracy(self, y, y_pred):
         for i in range(y.shape[0]):
             self.confusion_matrix[int(y_pred[i]), int(y[i])] += 1
@@ -361,31 +352,23 @@ class NeuralNetwork:
         self.f1score = np.insert(self.f1score, 0, np.average(self.f1score))
         self.accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
 
-    @staticmethod
-    def _get_multi_class_y(y, nb_class):
-        def is_class(val, class_nb):
-            return 1 if val == class_nb else 0
-        Y = np.ones((y.shape[0], nb_class), dtype="float64")
-        for i in range(nb_class):
-            Y[:, i] = [is_class(val, i) for val in y]
-        return Y
-
-    def _init_neural_network(self, input_vector):
+    def _init_neural_network(self):
         """
-        initialiaze the network matrices according to the network topology.
-        Note that for convenience, self.z[0] and self.delta[0] are initialized althought they are useless for the
+        Initialiaze the network: allocate space memory for the matrices according to the network topology.
+        Note that for convenience, self.z[0] and self.delta[0] are initialized although they are useless for the
         input layer. This allow a uniform definition of j for the layer number when calling the matrices.
-        :param input_vector: vector with the input value
         :return:
         """
-        self.weight = [np.random.rand(self.topology[1], self.topology[0] + 1)]
-        self.unit = [input_vector]
-        self.delta = [np.zeros(self.topology[0])]
-        for j in range(1, len(self.topology)):
-            self.unit.append(np.ones(self.topology[j]))
-            self.delta.append([np.ones(self.topology[j])])
-            if j < len(self.topology):
-                self.weight.append(np.random.rand(self.topology[j + 1], self.topology[j] + 1))
+        self.weight = []
+        self.w_delta = []
+        self.unit = []
+        self.delta = []
+        for l in range(0, len(self.topology)):
+            self.unit.append(np.zeros(self.topology[l]))
+            self.delta.append([np.zeros(self.topology[l])])
+            if l < len(self.topology) - 1:
+                self.weight.append(np.random.rand(self.topology[l + 1], self.topology[l] + 1))
+                self.w_delta.append(np.zeros((self.topology[l + 1], self.topology[l] + 1)))
 
     def _compute_layer_val(self, j):
         """
@@ -400,28 +383,48 @@ class NeuralNetwork:
         return NeuralNetwork._sigmoid(z)
 
     def _forward_propagation(self):
-        for j in range(1, len(self.topology)):
-            self.unit[j] = self._compute_layer_val(j)
+        for l in range(1, len(self.topology)):
+            self.unit[l] = self._compute_layer_val(l)
 
-    def backpropagation(self, y):
+    def _backpropagation(self, y):
         """
 
         :param y: expected value. Vector of size n with n the number of unit in the last layer.
         :return:
         """
         self.delta[-1] = self.unit[-1] - y
-        for j in range(len(self.topology) - 1, 1, -1):
-            self.delta[j] = np.matmul(self.delta[j + 1], self.weight[j]) * (self.unit[j] * (1 - self.unit[j]))
+        for l in range(len(self.topology) - 2, 1, -1):
+            self.delta[l] = np.matmul(self.delta[l + 1], self.weight[l])[1:] * (self.unit[l] * (1 - self.unit[l]))
+            self.w_delta[l] += np.matmul(self.delta[l + 1].reshape(-1, 1), np.insert(self.unit[l], 0, 1).reshape(1, -1))
 
+    def _update_weight(self, nb_of_sample):
+        for l in range(len(self.topology) - 1):
+            if self.regularization != 0:
+                _lambda = np.diag(np.diag(np.ones((self.weight[l].shape[0], self.weight[l].shape[0]))) * self.regularization)
+                _lambda[0, 0] = 0
+            else:
+                _lambda = np.zeros(self.w_delta.shape)
+            w_grad = self.w_delta[l] / nb_of_sample + np.matmul(_lambda, self.weight[l])
+            self.weight[l] -= self.learning_rate * w_grad
 
     def train(self, X, Y, verbose=1):
         """
 
-        :param X:
-        :param Y:
+        :param X: matrix of shape (n_samples, n_feature)
+        :param Y: matrix of shape (n_samples, n_output)
         :param verbose:
         :return:
         """
+        self._init_neural_network()
+        for i in range(self.nb_iter):
+            if i % 100 == 0:
+                print("iteration: {}".format(i))
+            for m in range(X.shape[0]):
+                self.unit[0] = X[m]
+                self._forward_propagation()
+                self._backpropagation(Y[m])
+            self._update_weight(X.shape[0])
+
 
 
     def fit(self, X, y, verbose=1):

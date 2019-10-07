@@ -104,7 +104,7 @@ class MinMaxScaler:
 
     def fit_transform(self, data, inplace=False):
         self.fit(data)
-        return self.transform(data,inplace=inplace)
+        return self.transform(data, inplace=inplace)
 
     def load(self, file):
         with Path(file).open(mode='rb') as fp:

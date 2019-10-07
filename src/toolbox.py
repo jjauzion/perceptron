@@ -79,3 +79,23 @@ def percentile_vector(vector, centile):
         return a + (b - a) * decimal
     else:
         return sorted_vect[int(index)]
+
+
+def get_multi_class_y(y, nb_class):
+    """
+    Transform y vector with multi value to a Y matrix with 1 and 0 for each class:
+    y = [1, 3, 0, 2]
+    Y = [[0, 1, 0, 0],
+         [0, 0, 0, 1],
+         [1, 0, 0, 0],
+         [0, 0, 1, 0],
+    :param y: vector of size m with m the nb of samples
+    :param nb_class: nb of class expected
+    :return: Y matrix of size (m, nb_class)
+    """
+    def is_class(val, class_nb):
+        return 1 if val == class_nb else 0
+    Y = np.ones((y.shape[0], nb_class), dtype="float64")
+    for i in range(nb_class):
+        Y[:, i] = [is_class(val, i) for val in y]
+    return Y
