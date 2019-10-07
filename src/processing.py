@@ -214,24 +214,22 @@ class NeuralNetwork:
              Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
-    def __init__(self, nb_itertion=1000, learning_rate=0.1, nb_class=1, regularization_rate=0, topology=None, model_name=None):
+    def __init__(self, nb_itertion=1000, learning_rate=0.1, regularization_rate=0, topology=None, model_name=None):
         """
 
         :param nb_itertion:
         :param learning_rate:
-        :param nb_class:
         :param regularization_rate:
         :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
         layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
         :param model_name:
         """
-        self.topology = [] if topology is None else topology
+        self.topology = topology
         self.nb_iter = nb_itertion
         self.learning_rate = learning_rate
-        self.nb_class = nb_class
         self.regularization = 0 if regularization_rate is None else regularization_rate
         self.name = model_name
-        self.confusion_matrix = np.zeros((nb_class, nb_class), dtype=int)
+        self.confusion_matrix = np.zeros((self.topology[-1], self.topology[-1]), dtype=int)
         self.precision = [-1]
         self.recall = [-1]
         self.f1score = [-1]
@@ -240,7 +238,7 @@ class NeuralNetwork:
         self.unit = None
         self.delta = None
         self.w_delta = None
-        self.cost_history = np.zeros((nb_itertion, nb_class))
+        self.cost_history = np.zeros((nb_itertion, self.topology[-1]))
 
     def describe(self):
         """Print model characterisic"""
@@ -325,7 +323,7 @@ class NeuralNetwork:
         """
         return self._sigmoid(np.matmul(X, self.weight))
 
-    def _compute_cost(self, X, Y, H):
+    def _compute_cost(self, X, Y, H, weight=None):
         """
 
         self.weight : n by nb_class matrix, with n the number of parameter
@@ -334,6 +332,9 @@ class NeuralNetwork:
         :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
+        weight = weight if weight is not None else self.weight
+        cost = -1 / X.shape[0] * (np.matmul(Y.t, np.log(H)) + np.matmul((1 - Y).T, np.log(1 - H)))
+        # Z = N.diag(X.dot(Y)) <=> Z = (X * Y.T).sum(-1)
         cost = -1 / X.shape[0] * (np.matmul(Y.T, np.log(H)) + np.matmul((1 - Y).T, np.log(1 - H)))
         regul = self.regularization / (2 * X.shape[0]) * (np.matmul(self.weight.T, self.weight))
         return np.diagonal(cost + regul)
@@ -397,7 +398,15 @@ class NeuralNetwork:
             self.delta[l] = np.matmul(self.delta[l + 1], self.weight[l])[1:] * (self.unit[l] * (1 - self.unit[l]))
             self.w_delta[l] += np.matmul(self.delta[l + 1].reshape(-1, 1), np.insert(self.unit[l], 0, 1).reshape(1, -1))
 
-    def _update_weight(self, nb_of_sample):
+    def _update_weight(self, nb_of_sample, gradient_checking=None):
+        """
+        Compute the partial derivate of the cost with respect to each weight parameters (w_grad) and update the weight
+        with these gradient as follow: weight = weight - learning_rate * w_grad
+        :param nb_of_sample: number of sample in the training set. The weight delta has previously been computed over
+        all of the training sample
+        :param gradient_checking: If not None, will compare the computed value of w_grad to the matrix gradient_checking
+        gradient_checking shall be a matrix of size : ......... TO BE COMPLETED ...........
+        """
         for l in range(len(self.topology) - 1):
             if self.regularization != 0:
                 _lambda = np.diag(np.diag(np.ones((self.weight[l].shape[0], self.weight[l].shape[0]))) * self.regularization)
@@ -417,40 +426,21 @@ class NeuralNetwork:
         """
         self._init_neural_network()
         for i in range(self.nb_iter):
-            if i % 100 == 0:
+            if verbose >= 1 and i % 100 == 0:
                 print("iteration: {}".format(i))
             for m in range(X.shape[0]):
                 self.unit[0] = X[m]
                 self._forward_propagation()
                 self._backpropagation(Y[m])
             self._update_weight(X.shape[0])
-
-
-
-    def fit(self, X, y, verbose=1):
-        """
-
-        :param X: matrix of shape (n_samples, n_feature)
-        :param y: vector of shape (n_samples)
-        :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing ; 2: plot and print
-        :return: y_pred from X after training, vector of shape (n_samples)
-        """
-        X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
-        Y = self._get_multi_class_y(y, self.nb_class) if self.nb_class > 1 else y.reshape(-1, 1)
-        self.weight = np.random.random((X.shape[1], self.nb_class))
-        for i in range(self.nb_iter):
-            H = self._compute_hypothesis(X)
-            self.weight = self._update_weight(X, Y, H)
-            self.cost_history[i, :] = self._compute_cost(X, Y, H)
-        Y_pred = self._compute_hypothesis(X)
-        y_pred = self._to_class_id(Y_pred)
-        self._compute_accuracy(y, y_pred)
+        # Y_pred = self._compute_hypothesis(X)
+        # y_pred = self._to_class_id(Y_pred)
+        # self._compute_accuracy(y, y_pred)
         if verbose >= 1:
             print("Training completed!")
-            self.print_accuracy()
+            # self.print_accuracy()
         if verbose >= 2:
             self.plot_training()
-        return y_pred
 
     def predict(self, X, verbose=1):
         """
