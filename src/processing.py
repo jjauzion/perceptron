@@ -274,9 +274,7 @@ class NeuralNetwork:
     def plot_training(self):
         """Plot training curve convergence"""
         fig = plt.figure("Training convergence")
-        for i in range(self.nb_class):
-            plt.plot(self.cost_history[:, i])
-        plt.legend(list(range(self.nb_class)))
+        plt.plot(self.cost_history)
         plt.title("Cost history")
         plt.xlabel("nb of iterations")
         plt.ylabel("Cost")
@@ -363,7 +361,6 @@ class NeuralNetwork:
             print("w_grad =\n{}".format(w_grad))
             print("num_grad =\n{}".format(num_grad))
             print("diff =\n{}".format(abs(num_grad - w_grad)))
-            input()
         else:
             print("All good !")
             print("w_grad =\n{}".format(w_grad))
@@ -383,11 +380,20 @@ class NeuralNetwork:
         :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
-        cost = -1 / Y.shape[0] * np.sum(Y * np.log(H) + (1 - Y) * np.log(1 - H))
+        prod = np.row_stack(Y) * np.log(H)
+        print("DEBUG sY = {} ; slog(H)={}".format(np.row_stack(Y).shape, np.log(H).shape))
+        print("DEBUG\nY, log(H)\n{}".format(np.hstack((Y.reshape(Y.shape[0], -1), np.log(H).reshape(Y.shape[0], -1)))))
+        print("DEBUG\nprod\n{}".format(prod))
+        prod = (1 - np.row_stack(Y)) * np.log(1 - H)
+        print("DEBUG\n1-Y, log(1-H)\n{}".format(np.hstack((1 - Y.reshape(Y.shape[0], -1), np.log(1 - H).reshape(Y.shape[0], -1)))))
+        print("DEBUG\nprod\n{}".format(prod))
+        cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
         regul = 0
         for l in range(len(self.topology) - 1):
             regul += np.sum(self.weight[l] ** 2)
-        return cost + self.regularization / (2 * Y.shape[0]) * regul
+        regul = regul * self.regularization / (2 * Y.shape[0])
+        print("DEBUG cost = {} ; regul = {}".format(cost, regul))
+        return cost + regul
 
     def _compute_accuracy(self, y, y_pred):
         for i in range(y.shape[0]):
@@ -461,12 +467,9 @@ class NeuralNetwork:
         :param Y: If gradient_checking is enabled, input Y matrix shall be given (size: nb_of_sample by nb_of_output)
         """
         for l in range(len(self.topology) - 1):
-            if self.regularization != 0:
-                _lambda = np.diag(np.diag(np.ones((self.weight[l].shape[0], self.weight[l].shape[0]))) * self.regularization)
-                _lambda[0, 0] = 0
-            else:
-                _lambda = np.zeros(self.w_delta.shape)
-            w_grad = self.w_delta[l] / nb_of_sample + np.matmul(_lambda, self.weight[l])
+            regul = self.weight[l] * self.regularization
+            regul[0] = 0
+            w_grad = (self.w_delta[l] + regul) / nb_of_sample
             self.weight[l] -= self.learning_rate * w_grad
             if gradient_checking:
                 if X is None or Y is None:
@@ -478,18 +481,25 @@ class NeuralNetwork:
 
         :param X: matrix of shape (n_samples, n_feature)
         :param Y: matrix of shape (n_samples, n_output)
+        :param gradient_checking: If True, enable the gradient checking at each iteration
         :param verbose:
         :return:
         """
         self._init_neural_network()
+        self.cost_history = []
+        y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         for i in range(self.nb_iter):
             if verbose >= 1 and i % 100 == 0:
                 print("iteration: {}".format(i))
             for m in range(X.shape[0]):
                 self.unit[0] = X[m]
                 self._forward_propagation()
+                y_pred[m] = self.unit[-1]
                 self._backpropagation(Y[m])
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
+            print("DEBUG\nY({}), y_pred({})".format(Y.shape, y_pred.shape))
+            print("DEBUG\nY, y_pred\n{}".format(np.hstack((Y.reshape(X.shape[0], -1), y_pred.reshape(X.shape[0], -1)))))
+            self.cost_history.append(self._compute_cost(Y=Y, H=y_pred))
         # Y_pred = self._compute_hypothesis(X)
         # y_pred = self._to_class_id(Y_pred)
         # self._compute_accuracy(y, y_pred)
