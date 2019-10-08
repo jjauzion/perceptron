@@ -108,7 +108,7 @@ class LogReg:
         :return:
         """
         cost = -1 / X.shape[0] * (np.matmul(Y.T, np.log(H)) + np.matmul((1 - Y).T, np.log(1 - H)))
-        regul = self.regularization / (2 * X.shape[0]) * (np.matmul(self.weight.T, self.weight))
+        regul = self.regularization / (2 * X.shape[0]) * (np.sum(self.weight ** 2))
         return np.diagonal(cost + regul)
 
     def _update_weight(self, X, Y, H):
@@ -308,36 +308,86 @@ class NeuralNetwork:
     @staticmethod
     def _to_class_id(Y_pred):
         """
-        Create a m by 1 matrix with m the number of sample. Takes  as an input the Y_pred matrix createdFor each sample, the class id with most class id matrix for each sample the ass
+        Create a m by 1 matrix with m the number of sample. Takes as an input the Y_pred matrix created.
+        For each sample, the index of the class id with higher value (i.e. most probable class) is taken.
+        Example:
+        Y_pred = [[0.99, 0.1, 0], [0.01, 0.2, 0.8]] will return as [[0], [2]]
         :param Y_pred: m by nb_class matrix, with m nb of sample
         :return: m by 1 matrix -> predicted class number
         """
         return Y_pred.argmax(axis=1)
 
-    def _compute_hypothesis(self, X):
+    def _compute_hypothesis_with_custom_weight(self, X, weight, layer):
         """
+        Perform a forward propagation but using custom weight instead of weight stored in self.
+        :param X:
+        :param weight:
+        :param layer:
+        :return:
+        """
+        H = np.zeros((X.shape[0], self.topology[-1]))
+        for m in range(X.shape[0]):
+            h = np.copy(X[m])
+            for l in range(1, len(self.topology)):
+                a = np.insert(h, 0, 1)
+                if l - 1 == layer:
+                    z = np.matmul(weight, a)
+                else:
+                    z = np.matmul(self.weight[l - 1], a)
+                h = NeuralNetwork._sigmoid(z)
+            H[m] = h
+        return H
 
-        :param weight: n by nb_class matrix, with n the number of parameter
-        :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :return: m by nb_class matrix, with m nb of sample
+    def _gradient_checking(self, X, Y, layer, w_grad):
         """
-        return self._sigmoid(np.matmul(X, self.weight))
+        Check the weight gradient (w_grad) computed from back propagation to a numerical gradient computation
+        :param layer: int. Layer number to be checked
+        :param w_grad: weight gradient for this layer compute from back propagation
+        :return:
+        """
+        epsilon = 0.0001
+        perturb = np.zeros(w_grad.shape)
+        num_grad = np.zeros(w_grad.shape)
+        it = np.nditer(w_grad, flags=['multi_index'])
+        while not it.finished:
+            perturb[it.multi_index[0], it.multi_index[1]] = epsilon
+            H1 = self._compute_hypothesis_with_custom_weight(X, self.weight[layer] - perturb, layer)
+            loss1 = self._compute_cost(Y, H1)
+            H2 = self._compute_hypothesis_with_custom_weight(X, self.weight[layer] + perturb, layer)
+            loss2 = self._compute_cost(Y, H2)
+            num_grad[it.multi_index[0], it.multi_index[1]] = (loss2 - loss1) / (2 * epsilon)
+            perturb[it.multi_index[0], it.multi_index[1]] = 0
+            it.iternext()
+        if not np.allclose(num_grad, w_grad):
+            print("It seems there is an error in gradient computation...")
+            print("w_grad =\n{}".format(w_grad))
+            print("num_grad =\n{}".format(num_grad))
+            print("diff =\n{}".format(abs(num_grad - w_grad)))
+            input()
+        else:
+            print("All good !")
+            print("w_grad =\n{}".format(w_grad))
+            print("num_grad =\n{}".format(num_grad))
+            print("diff =\n{}".format(abs(num_grad - w_grad)))
 
-    def _compute_cost(self, X, Y, H, weight=None):
+    def _compute_cost(self, Y, H):
         """
+        Compute the cross entropy loss of prediction H versus Y true values
+
+        cost formula:  -1/m * sum(sum(Y * log(H) + (1 - Y) * log(1 - H)))
+        Note:          Z = np.sum(np.diag(X.dot(Y))) <=> Z = np.sum(X * Y.T)
+        regul formula: lambda / (2m) * sum(sum(sum(Theta^2)))
 
         self.weight : n by nb_class matrix, with n the number of parameter
-        :param X: m by n matrix, with n the number of parameter and m nb of sample
         :param Y: m by nb_class matrix, with m nb of sample
         :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
-        weight = weight if weight is not None else self.weight
-        cost = -1 / X.shape[0] * (np.matmul(Y.t, np.log(H)) + np.matmul((1 - Y).T, np.log(1 - H)))
-        # Z = N.diag(X.dot(Y)) <=> Z = (X * Y.T).sum(-1)
-        cost = -1 / X.shape[0] * (np.matmul(Y.T, np.log(H)) + np.matmul((1 - Y).T, np.log(1 - H)))
-        regul = self.regularization / (2 * X.shape[0]) * (np.matmul(self.weight.T, self.weight))
-        return np.diagonal(cost + regul)
+        cost = -1 / Y.shape[0] * np.sum(Y * np.log(H) + (1 - Y) * np.log(1 - H))
+        regul = 0
+        for l in range(len(self.topology) - 1):
+            regul += np.sum(self.weight[l] ** 2)
+        return cost + self.regularization / (2 * Y.shape[0]) * regul
 
     def _compute_accuracy(self, y, y_pred):
         for i in range(y.shape[0]):
@@ -386,6 +436,7 @@ class NeuralNetwork:
     def _forward_propagation(self):
         for l in range(1, len(self.topology)):
             self.unit[l] = self._compute_layer_val(l)
+        return self.unit[-1]
 
     def _backpropagation(self, y):
         """
@@ -394,18 +445,20 @@ class NeuralNetwork:
         :return:
         """
         self.delta[-1] = self.unit[-1] - y
-        for l in range(len(self.topology) - 2, 1, -1):
+        for l in range(len(self.topology) - 2, 0, -1):
             self.delta[l] = np.matmul(self.delta[l + 1], self.weight[l])[1:] * (self.unit[l] * (1 - self.unit[l]))
             self.w_delta[l] += np.matmul(self.delta[l + 1].reshape(-1, 1), np.insert(self.unit[l], 0, 1).reshape(1, -1))
+        self.w_delta[0] += np.matmul(self.delta[1].reshape(-1, 1), np.insert(self.unit[0], 0, 1).reshape(1, -1))
 
-    def _update_weight(self, nb_of_sample, gradient_checking=None):
+    def _update_weight(self, nb_of_sample, gradient_checking=False, X=None, Y=None):
         """
         Compute the partial derivate of the cost with respect to each weight parameters (w_grad) and update the weight
         with these gradient as follow: weight = weight - learning_rate * w_grad
         :param nb_of_sample: number of sample in the training set. The weight delta has previously been computed over
         all of the training sample
-        :param gradient_checking: If not None, will compare the computed value of w_grad to the matrix gradient_checking
-        gradient_checking shall be a matrix of size : ......... TO BE COMPLETED ...........
+        :param gradient_checking: If True, will compare the computed value of w_grad to a numerical approx of the gradient
+        :param X: If gradient_checking is enabled, input X matrix shall be given (size: nb_of_sample by nb_of_input)
+        :param Y: If gradient_checking is enabled, input Y matrix shall be given (size: nb_of_sample by nb_of_output)
         """
         for l in range(len(self.topology) - 1):
             if self.regularization != 0:
@@ -415,8 +468,12 @@ class NeuralNetwork:
                 _lambda = np.zeros(self.w_delta.shape)
             w_grad = self.w_delta[l] / nb_of_sample + np.matmul(_lambda, self.weight[l])
             self.weight[l] -= self.learning_rate * w_grad
+            if gradient_checking:
+                if X is None or Y is None:
+                    raise AttributeError("X and Y param are required for gradient checking")
+                self._gradient_checking(X, Y, l, w_grad)
 
-    def train(self, X, Y, verbose=1):
+    def train(self, X, Y, verbose=1, gradient_checking=False):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
@@ -432,7 +489,7 @@ class NeuralNetwork:
                 self.unit[0] = X[m]
                 self._forward_propagation()
                 self._backpropagation(Y[m])
-            self._update_weight(X.shape[0])
+            self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
         # Y_pred = self._compute_hypothesis(X)
         # y_pred = self._to_class_id(Y_pred)
         # self._compute_accuracy(y, y_pred)
@@ -452,11 +509,13 @@ class NeuralNetwork:
         if self.weight is None:
             self.weight = np.zeros((X.shape[1], 1))
             print("Warning: it seems the model is not yet trained...")
-        X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
-        if X.shape[1] != self.weight.shape[0]:
-            raise ValueError("The input X matrix dimension ({}) doesn't match with model weight shape ({})"
-                             .format(X.shape, self.weight.shape))
-        y_pred = self._compute_hypothesis(X)
+        if X.shape[1] + 1 != self.weight[0].shape[1]:
+            raise ValueError("The input X matrix dimension ({}) (bias unit added) doesn't match with model weight shape ({})"
+                             .format(X.shape + 1, self.weight[1].shape))
+        y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
+        for m in range(X.shape[0]):
+            self.unit[0] = X[m]
+            y_pred[m] = self._forward_propagation()
         if verbose >= 1:
             print("Prediction completed!".format())
         if verbose >= 2:

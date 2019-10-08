@@ -10,10 +10,20 @@ from . import plotlib
 
 class DataFrame:
 
-    def __init__(self, import_scale_and_label=None):
-        self.data = None
+    def __init__(self, import_scale_and_label=None, data=None):
+        """
+        Create a dataframe object.
+        :param import_scale_and_label:
+        :param data: If data is provided, the dataframe is initiazed with data. Data shall be a matrix of shape m by n
+        where m is the number of sample and n the number of features.
+        """
+        if data is not None:
+            self.data = data
+            self.header = np.arange(data.shape[1])
+        else:
+            self.data = None
+            self.header = []
         self.original_data = None
-        self.header = []
         self.scaler = None
         self.labelizer = None
         if import_scale_and_label is not None:
@@ -45,6 +55,7 @@ class DataFrame:
     # DATA ANALYSIS FUNCTION
 
     def describe(self, floating_point=2):
+        print("data = \n{}\nheader='{}'".format(self.data, self.header))
         self.count_nan()
         stats = np.array([
             self.count(), self.mean(), self.std(), self.min(),
