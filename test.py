@@ -35,3 +35,5 @@ model = processing.NeuralNetwork(topology=args.topology, nb_itertion=100, regula
 model.train(np.delete(df.data, 1, axis=1), df.data[:, 1], gradient_checking=True, verbose=2)
 y_id, y_pred = model.predict(X=np.array([[20, 20], [-1, -10], [-0.1, -2], [1, 2]]))
 print(y_pred)
+model = processing.LogReg(nb_class=1)
+model.fit(np.delete(df.data, 1, axis=1), df.data[:, 1], verbose=2)

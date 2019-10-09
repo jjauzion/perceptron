@@ -12,7 +12,8 @@ class LogReg:
         self.nb_class = nb_class
         self.regularization = 0 if regularization_rate is None else regularization_rate
         self.name = model_name
-        self.confusion_matrix = np.zeros((nb_class, nb_class), dtype=int)
+        tmp = self.nb_class if self.nb_class > 1 else 2
+        self.confusion_matrix = np.zeros((tmp, tmp), dtype=int)
         self.precision = [-1]
         self.recall = [-1]
         self.f1score = [-1]
@@ -32,7 +33,8 @@ class LogReg:
         Print model's performance scores (accuracy, recall, precision, F1score)
         :param class_name: list containing the name of each class in order
         """
-        class_name = class_name if class_name is not None else [str(elm) for elm in range(self.nb_class)]
+        nb_class = self.nb_class if self.nb_class > 1 else 2
+        class_name = class_name if class_name is not None else [str(elm) for elm in range(nb_class)]
         class_name = ["Average"] + class_name
         col_padding = [15] + [max(9, len(elm)) for elm in class_name]
         line = [
@@ -80,14 +82,16 @@ class LogReg:
     def _sigmoid(X):
         return 1 / (1 + np.exp(-X))
 
-    @staticmethod
-    def _to_class_id(Y_pred):
+    def _to_class_id(self, Y_pred):
         """
         Create a m by 1 matrix with m the number of sample. Takes  as an input the Y_pred matrix createdFor each sample, the class id with most class id matrix for each sample the ass
         :param Y_pred: m by nb_class matrix, with m nb of sample
         :return: m by 1 matrix -> predicted class number
         """
-        return Y_pred.argmax(axis=1)
+        if self.nb_class > 1:
+            return Y_pred.argmax(axis=1)
+        else:
+            return np.round(Y_pred).flatten()
 
     def _compute_hypothesis(self, X):
         """
@@ -131,9 +135,16 @@ class LogReg:
         true_positive = np.diagonal(self.confusion_matrix)
         self.precision = true_positive / total_true
         self.precision = np.insert(self.precision, 0, np.average(self.precision))
-        self.recall = true_positive / total_predicted
+        # self.recall = true_positive / total_predicted
+        # np.nan_to_num(self.recall, copy=False)
+        self.recall = np.zeros(true_positive.shape, dtype=float)
+        np.divide(true_positive, total_predicted, out=self.recall, where=(total_predicted != 0))
         self.recall = np.insert(self.recall, 0, np.average(self.recall))
-        self.f1score = 2 * self.precision * self.recall / (self.precision + self.recall)
+        # self.f1score = 2 * self.precision * self.recall / (self.precision + self.recall)
+        # np.nan_to_num(self.f1score, copy=False)
+        self.f1score = np.zeros(self.precision.shape, dtype=float)
+        tmp = self.precision + self.recall
+        np.divide((2 * self.precision * self.recall), tmp, out=self.f1score, where=(tmp != 0))
         self.f1score = np.insert(self.f1score, 0, np.average(self.f1score))
         self.accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
 
@@ -381,18 +392,14 @@ class NeuralNetwork:
         :return:
         """
         prod = np.row_stack(Y) * np.log(H)
-        print("DEBUG sY = {} ; slog(H)={}".format(np.row_stack(Y).shape, np.log(H).shape))
-        print("DEBUG\nY, log(H)\n{}".format(np.hstack((Y.reshape(Y.shape[0], -1), np.log(H).reshape(Y.shape[0], -1)))))
-        print("DEBUG\nprod\n{}".format(prod))
+        print("DEBUG\nY * log(H)\n{}".format(prod))
         prod = (1 - np.row_stack(Y)) * np.log(1 - H)
-        print("DEBUG\n1-Y, log(1-H)\n{}".format(np.hstack((1 - Y.reshape(Y.shape[0], -1), np.log(1 - H).reshape(Y.shape[0], -1)))))
-        print("DEBUG\nprod\n{}".format(prod))
+        print("DEBUG\n1-Y * log(1-H)\n{}".format(prod))
         cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
         regul = 0
         for l in range(len(self.topology) - 1):
             regul += np.sum(self.weight[l] ** 2)
         regul = regul * self.regularization / (2 * Y.shape[0])
-        print("DEBUG cost = {} ; regul = {}".format(cost, regul))
         return cost + regul
 
     def _compute_accuracy(self, y, y_pred):
