@@ -18,7 +18,7 @@ class DataFrame:
         where m is the number of sample and n the number of features.
         """
         if data is not None:
-            self.data = data
+            self.data = data.astype(float)
             self.header = np.arange(data.shape[1])
         else:
             self.data = None
