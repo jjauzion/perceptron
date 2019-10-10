@@ -70,7 +70,7 @@ class LogReg(Model.Classification):
             self.cost_history[i] = self._compute_cost(X, Y, H)
         Y_pred = self._compute_hypothesis(X)
         y_pred = self._to_class_id(Y_pred)
-        self._compute_accuracy(y, y_pred)
+        self.compute_accuracy(y, y_pred)
         if verbose >= 1:
             print("Training completed!")
             self.print_accuracy()
@@ -98,7 +98,3 @@ class LogReg(Model.Classification):
         if verbose >= 2:
             print(y_pred)
         return self._to_class_id(y_pred), y_pred
-
-    def save_model(self, file):
-        with Path(file).open(mode='wb') as fd:
-            pickle.dump(self.__dict__, fd)

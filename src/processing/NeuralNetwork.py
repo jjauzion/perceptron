@@ -31,9 +31,13 @@ class NeuralNetwork(Model.Classification):
         layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
         :param model_name:
         """
-        self.topology = topology
+        self.topology = topology if topology is not None else [2, 1]
         self.weight = None
-        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, topology[-1], model_name)
+        self.w_delta = None
+        self.unit = None
+        self.delta = None
+        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, self.topology[-1],
+                                      model_name)
 
     def describe(self):
         """Print model characterisic"""
@@ -173,7 +177,7 @@ class NeuralNetwork(Model.Classification):
             regul = self.weight[l] * self.regularization
             regul[0] = 0
             w_grad = (self.w_delta[l] + regul) / nb_of_sample
-            self.weight[l] -= self.learning_rate *  w_grad
+            self.weight[l] -= self.learning_rate * w_grad
             if gradient_checking:
                 if X is None or Y is None:
                     raise AttributeError("X and Y param are required for gradient checking")
@@ -206,7 +210,7 @@ class NeuralNetwork(Model.Classification):
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
             self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
         y_pred = self._to_class_id(Y_pred)
-        self._compute_accuracy(y, y_pred)
+        self.compute_accuracy(y, y_pred)
         if verbose >= 1:
             print("Training completed!")
             self.print_accuracy()

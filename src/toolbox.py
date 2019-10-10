@@ -100,3 +100,50 @@ def one_hot_encode(y, nb_class):
         Y[:, i] = [is_class(val, i) for val in y]
     return Y
 
+
+def compute_accuracy(y, y_pred):
+    nb_class = np.unique(y).shape[0]
+    confusion_matrix = np.zeros((nb_class, nb_class), dtype=int)
+    for i in range(y.shape[0]):
+        confusion_matrix[int(y_pred[i]), int(y[i])] += 1
+    total_predicted = np.sum(confusion_matrix, axis=1)
+    total_true = np.sum(confusion_matrix, axis=0)
+    true_positive = np.diagonal(confusion_matrix)
+    precision = true_positive / total_true
+    recall = np.zeros(true_positive.shape, dtype=float)
+    np.divide(true_positive, total_predicted, out=recall, where=(total_predicted != 0))
+    f1score = np.zeros(nb_class, dtype=float)
+    tmp = precision + recall
+    np.divide((2 * precision * recall), tmp, out=f1score, where=(tmp != 0))
+    precision = np.insert(precision, 0, np.average(precision))
+    recall = np.insert(recall, 0, np.average(recall))
+    f1score = np.insert(f1score, 0, np.average(f1score))
+    accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
+    return confusion_matrix, precision, recall, f1score, accuracy
+
+
+def print_accuracy(precision, recall, f1score, accuracy, nb_class, class_name=None, confusion_matrix=None):
+    """
+    Print model's performance scores (accuracy, recall, precision, F1score)
+    :param class_name: list containing the name of each class in order
+    """
+    class_name = class_name if class_name is not None else [str(elm) for elm in range(nb_class)]
+    class_name = ["Average"] + class_name
+    col_padding = [15] + [max(9, len(elm)) for elm in class_name]
+    line = [
+        "".ljust(col_padding[0], " "),
+        "Precision".ljust(col_padding[0], " "),
+        "Recall".ljust(col_padding[0], " "),
+        "F1score".ljust(col_padding[0], " ")
+    ]
+    for i in range(len(class_name)):
+        line[0] += class_name[i].ljust(col_padding[i + 1], " ")
+        line[1] += "{}%".format(str(round(precision[i] * 100, 2))).ljust(col_padding[i + 1], " ")
+        line[2] += "{}%".format(str(round(recall[i] * 100, 2))).ljust(col_padding[i + 1], " ")
+        line[3] += "{}%".format(str(round(f1score[i] * 100, 2))).ljust(col_padding[i + 1], " ")
+    print("\n".join(line))
+    print("{title:<{width1}}{val:<{width2}}".format(
+        title="Accuracy", width1=col_padding[0], val=str(round(accuracy * 100, 2)) + "%", width2=col_padding[1]))
+    if confusion_matrix is not None:
+        print("Confusion matrix:\n{}".format(confusion_matrix))
+

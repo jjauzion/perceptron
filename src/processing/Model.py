@@ -36,22 +36,9 @@ class Classification:
         print("\nPerformance:")
         self.print_accuracy()
 
-    def _compute_accuracy(self, y, y_pred):
-        for i in range(y.shape[0]):
-            self.confusion_matrix[int(y_pred[i]), int(y[i])] += 1
-        total_predicted = np.sum(self.confusion_matrix, axis=1)
-        total_true = np.sum(self.confusion_matrix, axis=0)
-        true_positive = np.diagonal(self.confusion_matrix)
-        self.precision = true_positive / total_true
-        self.precision = np.insert(self.precision, 0, np.average(self.precision))
-        self.recall = np.zeros(true_positive.shape, dtype=float)
-        np.divide(true_positive, total_predicted, out=self.recall, where=(total_predicted != 0))
-        self.recall = np.insert(self.recall, 0, np.average(self.recall))
-        self.f1score = np.zeros(self.precision.shape, dtype=float)
-        tmp = self.precision + self.recall
-        np.divide((2 * self.precision * self.recall), tmp, out=self.f1score, where=(tmp != 0))
-        self.f1score = np.insert(self.f1score, 0, np.average(self.f1score))
-        self.accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
+    def compute_accuracy(self, y, y_pred):
+        self.confusion_matrix, self.precision, self.recall, self.f1score, self.accuracy = \
+            toolbox.compute_accuracy(y, y_pred)
 
     def print_accuracy(self, class_name=None):
         """
@@ -59,23 +46,7 @@ class Classification:
         :param class_name: list containing the name of each class in order
         """
         nb_class = self.nb_output if self.nb_output > 1 else 2
-        class_name = class_name if class_name is not None else [str(elm) for elm in range(nb_class)]
-        class_name = ["Average"] + class_name
-        col_padding = [15] + [max(9, len(elm)) for elm in class_name]
-        line = [
-            "".ljust(col_padding[0], " "),
-            "Precision".ljust(col_padding[0], " "),
-            "Recall".ljust(col_padding[0], " "),
-            "F1score".ljust(col_padding[0], " ")
-        ]
-        for i in range(len(class_name)):
-            line[0] += class_name[i].ljust(col_padding[i + 1], " ")
-            line[1] += "{}%".format(str(round(self.precision[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[2] += "{}%".format(str(round(self.recall[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[3] += "{}%".format(str(round(self.f1score[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-        print("\n".join(line))
-        print("{title:<{width1}}{val:<{width2}}".format(
-            title="Accuracy", width1=col_padding[0], val=str(round(self.accuracy * 100, 2)) + "%", width2=col_padding[1]))
+        toolbox.print_accuracy(self.precision, self.recall, self.f1score, self.accuracy, nb_class, class_name)
 
     def plot_training(self):
         """Plot training curve convergence"""
@@ -97,7 +68,7 @@ class Classification:
             raise ValueError("Given file '{}' is not a valid model".format(file))
         for key in model.keys():
             if key not in self.__dict__.keys():
-                raise ValueError("Given file '{}' is not a valid model".format(file))
+                raise ValueError("Given file '{}' is not a valid model. Unexpected key :'{}'".format(file, key))
         self.__dict__.update(model)
         return True
 
