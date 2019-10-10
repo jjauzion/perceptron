@@ -46,7 +46,7 @@ if args.drop_col_6_7_16:
 df.drop_nan_column()
 df.drop_nan_row()
 df.scale(scale_type=args.scale, first_col=1)
-model = processing.LogReg(nb_itertion=args.nb_iter, learning_rate=args.learning_rate, nb_class=4,
+model = processing.LogReg(nb_itertion=args.nb_iter, learning_rate=args.learning_rate, nb_output_unit=4,
                           regularization_rate=args.regul_rate, model_name=args.name)
 y_pred = model.fit(df.data[:, 1:], df.data[:, 0], verbose=args.verbosity)
 model_file = Path(args.save_dir) / "{}.pkl".format(args.name)

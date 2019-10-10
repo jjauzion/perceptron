@@ -9,12 +9,8 @@ from .. import toolbox
 
 class LogReg(Model.Classification):
 
-    def __init__(self, nb_itertion=1000, learning_rate=0.1, regularization_rate=0, nb_class=1, model_name=None):
-        self.nb_class = nb_class
-        tmp = self.nb_class if self.nb_class > 1 else 2
-        self.confusion_matrix = np.zeros((tmp, tmp), dtype=int)
-        Model.Classification.__init__(self, nb_itertion, learning_rate, regularization_rate, model_name)
-
+    def __init__(self, nb_itertion=1000, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
+        Model.Classification.__init__(self, nb_itertion, learning_rate, regularization_rate, nb_output_unit, model_name)
 
     def describe(self):
         """Print model characterisic"""
@@ -23,90 +19,22 @@ class LogReg(Model.Classification):
         print("\nPerformance:")
         self.print_accuracy()
 
-    def print_accuracy(self, class_name=None):
-        """
-        Print model's performance scores (accuracy, recall, precision, F1score)
-        :param class_name: list containing the name of each class in order
-        """
-        nb_class = self.nb_class if self.nb_class > 1 else 2
-        class_name = class_name if class_name is not None else [str(elm) for elm in range(nb_class)]
-        class_name = ["Average"] + class_name
-        col_padding = [15] + [max(9, len(elm)) for elm in class_name]
-        line = [
-            "".ljust(col_padding[0], " "),
-            "Precision".ljust(col_padding[0], " "),
-            "Recall".ljust(col_padding[0], " "),
-            "F1score".ljust(col_padding[0], " ")
-        ]
-        for i in range(len(class_name)):
-            line[0] += class_name[i].ljust(col_padding[i + 1], " ")
-            line[1] += "{}%".format(str(round(self.precision[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[2] += "{}%".format(str(round(self.recall[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[3] += "{}%".format(str(round(self.f1score[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-        print("\n".join(line))
-        print("{title:<{width1}}{val:<{width2}}".format(
-            title="Accuracy", width1=col_padding[0], val=str(round(self.accuracy * 100, 2)) + "%", width2=col_padding[1]))
-
-    def plot_training(self):
-        """Plot training curve convergence"""
-        fig = plt.figure("Training convergence")
-        for i in range(self.nb_class):
-            plt.plot(self.cost_history[:, i])
-        plt.legend(list(range(self.nb_class)))
-        plt.title("Cost history")
-        plt.xlabel("nb of iterations")
-        plt.ylabel("Cost")
-        plt.show()
-
-    def load_model(self, file):
-        """load an existing model from a pickle file"""
-        with Path(file).open(mode='rb') as fd:
-            try:
-                model = pickle.load(fd)
-            except (pickle.UnpicklingError, EOFError) as err:
-                raise ValueError("Can't load model from '{}' because : {}".format(file, err))
-        if not isinstance(model, dict):
-            raise ValueError("Given file '{}' is not a valid model".format(file))
-        for key in model.keys():
-            if key not in self.__dict__.keys():
-                raise ValueError("Given file '{}' is not a valid model".format(file))
-        self.__dict__.update(model)
-        return True
-
-    @staticmethod
-    def _sigmoid(X):
-        return 1 / (1 + np.exp(-X))
-
-    def _to_class_id(self, Y_pred):
-        """
-        Converts a matrix where each column is a class and each row a sample, and
-        where the value correspond to the probability that sample i is of class j,
-        to a vector with the most probable class ID for each sample.
-        Ex: Y_pred=[[0.99, 0.01, 0.2], [0.1, 0.02, 0.9]] will return [0, 3]
-        :param Y_pred: m by nb_class matrix, with m is the nb of sample
-        :return: vector of size m (where m is the number of sample) containing the predicted class number for each sample
-        """
-        if self.nb_class > 1:
-            return Y_pred.argmax(axis=1)
-        else:
-            return np.round(Y_pred).flatten()
-
     def _compute_hypothesis(self, X):
         """
 
-        :param weight: n by nb_class matrix, with n the number of parameter
+        :param weight: n by nb_output_unit matrix, with n the number of parameter
         :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :return: m by nb_class matrix, with m nb of sample
+        :return: m by nb_output_unit matrix, with m nb of sample
         """
         return self._sigmoid(np.matmul(X, self.weight))
 
     def _compute_cost(self, X, Y, H):
         """
 
-        self.weight : n by nb_class matrix, with n the number of parameter
+        self.weight : n by nb_output_unit matrix, with n the number of parameter
         :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :param Y: m by nb_class matrix, with m nb of sample
-        :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
+        :param Y: m by nb_output_unit matrix, with m nb of sample
+        :param H: m by nb_output_unit matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
         cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
@@ -116,11 +44,11 @@ class LogReg(Model.Classification):
     def _update_weight(self, X, Y, H):
         """
 
-        self.weight : n by nb_class matrix, with n the number of parameter
+        self.weight : n by nb_output_unit matrix, with n the number of parameter
         :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :param Y: m by nb_class matrix, with m nb of sample
-        :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
-        :return: n by nb_class matrix
+        :param Y: m by nb_output_unit matrix, with m nb of sample
+        :param H: m by nb_output_unit matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
+        :return: n by nb_output_unit matrix
         """
         m = X.shape[0]
         return self.weight - self.learning_rate * (np.matmul(X.T, H - Y) / m + self.regularization * self.weight / m)
@@ -151,12 +79,12 @@ class LogReg(Model.Classification):
         :return: y_pred from X after training, vector of shape (n_samples)
         """
         X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
-        Y = toolbox.one_hot_encode(y, self.nb_class) if self.nb_class > 1 else y.reshape(-1, 1)
-        self.weight = np.random.random((X.shape[1], self.nb_class))
+        Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
+        self.weight = np.random.random((X.shape[1], self.nb_output))
         for i in range(self.nb_iter):
             H = self._compute_hypothesis(X)
             self.weight = self._update_weight(X, Y, H)
-            self.cost_history[i, :] = self._compute_cost(X, Y, H)
+            self.cost_history[i] = self._compute_cost(X, Y, H)
         Y_pred = self._compute_hypothesis(X)
         y_pred = self._to_class_id(Y_pred)
         self._compute_accuracy(y, y_pred)

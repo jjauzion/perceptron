@@ -33,7 +33,7 @@ class NeuralNetwork(Model.Classification):
         """
         self.topology = topology
         self.weight = None
-        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, model_name)
+        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, topology[-1], model_name)
 
     def describe(self):
         """Print model characterisic"""
@@ -42,76 +42,6 @@ class NeuralNetwork(Model.Classification):
         print("Weights :\n{}".format(self.weight))
         print("\nPerformance:")
         self.print_accuracy()
-
-    def print_accuracy(self, class_name=None):
-        """
-        Print model's performance scores (accuracy, recall, precision, F1score)
-        :param class_name: list containing the name of each class in order
-        """
-        class_name = class_name if class_name is not None else [str(elm) for elm in range(self.nb_class)]
-        class_name = ["Average"] + class_name
-        col_padding = [15] + [max(9, len(elm)) for elm in class_name]
-        line = [
-            "".ljust(col_padding[0], " "),
-            "Precision".ljust(col_padding[0], " "),
-            "Recall".ljust(col_padding[0], " "),
-            "F1score".ljust(col_padding[0], " ")
-        ]
-        for i in range(len(class_name)):
-            line[0] += class_name[i].ljust(col_padding[i + 1], " ")
-            line[1] += "{}%".format(str(round(self.precision[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[2] += "{}%".format(str(round(self.recall[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-            line[3] += "{}%".format(str(round(self.f1score[i] * 100, 2))).ljust(col_padding[i + 1], " ")
-        print("\n".join(line))
-        print("{title:<{width1}}{val:<{width2}}".format(
-            title="Accuracy", width1=col_padding[0], val=str(round(self.accuracy * 100, 2)) + "%", width2=col_padding[1]))
-
-    def plot_training(self):
-        """Plot training curve convergence"""
-        fig = plt.figure("Training convergence")
-        plt.plot(self.cost_history)
-        plt.title("Cost history")
-        plt.xlabel("nb of iterations")
-        plt.ylabel("Cost")
-        plt.show()
-
-    def load_model(self, file):
-        """load an existing model from a pickle file"""
-        with Path(file).open(mode='rb') as fd:
-            try:
-                model = pickle.load(fd)
-            except (pickle.UnpicklingError, EOFError) as err:
-                raise ValueError("Can't load model from '{}' because : {}".format(file, err))
-        if not isinstance(model, dict):
-            raise ValueError("Given file '{}' is not a valid model".format(file))
-        for key in model.keys():
-            if key not in self.__dict__.keys():
-                raise ValueError("Given file '{}' is not a valid model".format(file))
-        self.__dict__.update(model)
-        return True
-
-    @staticmethod
-    def _sigmoid(X):
-        return 1 / (1 + np.exp(-X))
-
-    @staticmethod
-    def _derivative_sigmoid(X):
-        return NeuralNetwork._sigmoid(X) * (1 - NeuralNetwork._sigmoid(X))
-
-    def _to_class_id(self, Y_pred):
-        """
-        Converts a matrix where each column is a class and each row a sample, and
-        where the value correspond to the probability that sample i is of class j,
-        to a vector with the most probable class ID for each sample.
-        Ex: Y_pred=[[0.99, 0.01, 0.2], [0.1, 0.02, 0.9]] will return [0, 3]
-        :param Y_pred: m by nb_class matrix, with m is the nb of sample
-        :return: vector of size m (where m is the number of sample) containing the predicted class number for each sample
-        """
-        if self.topology[-1] > 1:
-            return Y_pred.argmax(axis=1)
-        else:
-            return np.round(Y_pred).flatten()
-
 
     def _compute_hypothesis_with_custom_weight(self, X, weight, layer):
         """
@@ -168,9 +98,9 @@ class NeuralNetwork(Model.Classification):
         Note:          Z = np.sum(np.diag(X.dot(Y))) <=> Z = np.sum(X * Y.T)
         regul formula: lambda / (2m) * sum(sum(sum(Theta^2)))
 
-        self.weight : n by nb_class matrix, with n the number of parameter
-        :param Y: m by nb_class matrix, with m nb of sample
-        :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
+        self.weight : n by nb_output_unit matrix, with n the number of parameter
+        :param Y: m by nb_output_unit matrix, with m nb of sample
+        :param H: m by nb_output_unit matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
         cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
@@ -266,30 +196,11 @@ class NeuralNetwork(Model.Classification):
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
 
-    def _update_weight_logreg(self, X, Y, H):
-        """
-
-        self.weight : n by nb_class matrix, with n the number of parameter
-        :param X: m by n matrix, with n the number of parameter and m nb of sample
-        :param Y: m by nb_class matrix, with m nb of sample
-        :param H: m by nb_class matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
-        :return: n by nb_class matrix
-        """
-        X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
-        m = X.shape[0]
-        a = H
-        b = a - Y.reshape(-1, 1)
-        c = np.matmul(b.T, X)
-        grad = self.learning_rate * c / m
-        ret = self.weight[0] - self.learning_rate * (np.matmul((H - Y.reshape(-1, 1)).T, X) / m + self.regularization * self.weight[0] / m)
-        return a, b, c, grad
-        # return ret
-
-    def train(self, X, Y, seed=None, verbose=1, gradient_checking=False):
+    def fit(self, X, y, seed=None, verbose=1, gradient_checking=False):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
-        :param Y: matrix of shape (n_samples, n_output)
+        :param y: vector of size n_samples
         :param seed: seed to be used for the random initialisation of the weights.
         :param gradient_checking: If True, enable the gradient checking at each iteration
         :param verbose:
@@ -297,6 +208,7 @@ class NeuralNetwork(Model.Classification):
         """
         self._init_neural_network(seed)
         self.cost_history = []
+        Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
         y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         for i in range(self.nb_iter):
             if verbose >= 1 and i % 100 == 0:
@@ -309,8 +221,6 @@ class NeuralNetwork(Model.Classification):
                 y_pred[m] = self.unit[-1]
                 self._backpropagation(Y[m])
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
-            # print("DEBUG\nY({}), y_pred({})".format(Y.shape, y_pred.shape))
-            # print("DEBUG\nY, y_pred\n{}".format(np.hstack((Y.reshape(X.shape[0], -1), y_pred.reshape(X.shape[0], -1)))))
             self.cost_history.append(self._compute_cost(Y=Y, H=y_pred))
         # Y_pred = self._compute_hypothesis(X)
         # y_pred = self._to_class_id(Y_pred)
@@ -343,7 +253,3 @@ class NeuralNetwork(Model.Classification):
         if verbose >= 2:
             print(y_pred)
         return self._to_class_id(y_pred), y_pred
-
-    def save_model(self, file):
-        with Path(file).open(mode='wb') as fd:
-            pickle.dump(self.__dict__, fd)
