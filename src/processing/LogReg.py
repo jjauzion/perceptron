@@ -3,25 +3,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pickle
 
+from . import Model
 from .. import toolbox
 
 
-class LogReg:
+class LogReg(Model.Classification):
 
-    def __init__(self, nb_itertion=1000, learning_rate=0.1, nb_class=1, regularization_rate=0, model_name=None):
-        self.nb_iter = nb_itertion
-        self.learning_rate = learning_rate
+    def __init__(self, nb_itertion=1000, learning_rate=0.1, regularization_rate=0, nb_class=1, model_name=None):
         self.nb_class = nb_class
-        self.regularization = 0 if regularization_rate is None else regularization_rate
-        self.name = model_name
         tmp = self.nb_class if self.nb_class > 1 else 2
         self.confusion_matrix = np.zeros((tmp, tmp), dtype=int)
-        self.precision = [-1]
-        self.recall = [-1]
-        self.f1score = [-1]
-        self.accuracy = -1
-        self.weight = None
-        self.cost_history = np.zeros((nb_itertion, nb_class))
+        Model.Classification.__init__(self, nb_itertion, learning_rate, regularization_rate, model_name)
+
 
     def describe(self):
         """Print model characterisic"""

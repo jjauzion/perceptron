@@ -3,43 +3,34 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pickle
 
-from . import Model
 from .. import toolbox
 
 
-class NeuralNetwork(Model.Classification):
-    """
-    Build a custom Neural Network.
-    List of Attributes:
-    weight: List of numpy array with the weight for each layers.
-            Each element is a matrix of size (S(j+1), S(j) + 1) with S(j) number of neurons in layer j
-    unit: List of numpy array with the neuron value for each layer.
-          Each element of the list is a vector of size n with n the number of neurons in layer j
-    delta: List of numpy array with the delta value for each unit of each layer. The delta is compute for the backpropagation.
-           Each element of the list is a vector of size n with n the number of neurons in layer j
-    w_delta: List of numpy array with the delta value for each weight of each layer. The delta is computed after the backpropagation.
-             Each element of the list is a matrix of same size as the weight matrix of this layer
-    """
+class Classification:
 
-    def __init__(self, topology=None, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, model_name=None):
+    def __init__(self, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, model_name=None):
         """
 
         :param nb_iteration:
         :param learning_rate:
         :param regularization_rate:
-        :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
-        layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
         :param model_name:
         """
-        self.topology = topology
+        self.nb_iter = nb_iteration
+        self.learning_rate = learning_rate
+        self.regularization = 0 if regularization_rate is None else regularization_rate
+        self.name = model_name
+        self.confusion_matrix = np.zeros((self.topology[-1], self.topology[-1]), dtype=int)
+        self.precision = [-1]
+        self.recall = [-1]
+        self.f1score = [-1]
+        self.accuracy = -1
+        self.cost_history = np.zeros(nb_iteration)
         self.weight = None
-        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, model_name)
 
     def describe(self):
         """Print model characterisic"""
         print("Model: {}".format(self.name))
-        print("Topology: {}".format(self.topology))
-        print("Weights :\n{}".format(self.weight))
         print("\nPerformance:")
         self.print_accuracy()
 
@@ -287,63 +278,3 @@ class NeuralNetwork(Model.Classification):
 
     def train(self, X, Y, seed=None, verbose=1, gradient_checking=False):
         """
-
-        :param X: matrix of shape (n_samples, n_feature)
-        :param Y: matrix of shape (n_samples, n_output)
-        :param seed: seed to be used for the random initialisation of the weights.
-        :param gradient_checking: If True, enable the gradient checking at each iteration
-        :param verbose:
-        :return:
-        """
-        self._init_neural_network(seed)
-        self.cost_history = []
-        y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
-        for i in range(self.nb_iter):
-            if verbose >= 1 and i % 100 == 0:
-                print("iteration: {}".format(i))
-            for l in range(len(self.topology) - 1):
-                self.w_delta[l][:] = 0
-            for m in range(X.shape[0]):
-                self.unit[0] = X[m]
-                self._forward_propagation()
-                y_pred[m] = self.unit[-1]
-                self._backpropagation(Y[m])
-            self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
-            # print("DEBUG\nY({}), y_pred({})".format(Y.shape, y_pred.shape))
-            # print("DEBUG\nY, y_pred\n{}".format(np.hstack((Y.reshape(X.shape[0], -1), y_pred.reshape(X.shape[0], -1)))))
-            self.cost_history.append(self._compute_cost(Y=Y, H=y_pred))
-        # Y_pred = self._compute_hypothesis(X)
-        # y_pred = self._to_class_id(Y_pred)
-        # self._compute_accuracy(y, y_pred)
-        if verbose >= 1:
-            print("Training completed!")
-            # self.print_accuracy()
-        if verbose >= 2:
-            self.plot_training()
-
-    def predict(self, X, verbose=1):
-        """
-        Make prediction based on x
-        :param X: matrix of shape (n_samples, n_feature)
-        :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing
-        :return: ((n_feature x nb_of_class matrix), (n_feature x 1) matrix)
-        """
-        if self.weight is None:
-            self.weight = np.zeros((X.shape[1], 1))
-            print("Warning: it seems the model is not yet trained...")
-        if X.shape[1] + 1 != self.weight[0].shape[1]:
-            raise ValueError("The input X matrix dimension ({}) (bias unit added) doesn't match with model weight shape ({})"
-                             .format(X.shape + 1, self.weight[1].shape))
-        y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
-        for m in range(X.shape[0]):
-            self.unit[0] = X[m]
-            y_pred[m] = self._forward_propagation()
-        if verbose >= 1:
-            print("Prediction completed!".format())
-        if verbose >= 2:
-            print(y_pred)
-        return self._to_class_id(y_pred), y_pred
-
-    def save_model(self, file):
-        with Path(file).open(mode='wb') as fd:
-            pickle.dump(self.__dict__, fd)
