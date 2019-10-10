@@ -81,7 +81,7 @@ def percentile_vector(vector, centile):
         return sorted_vect[int(index)]
 
 
-def get_multi_class_y(y, nb_class):
+def one_hot_encode(y, nb_class):
     """
     Transform y vector with multi value to a Y matrix with 1 and 0 for each class:
     y = [1, 3, 0, 2]
