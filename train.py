@@ -22,5 +22,5 @@ except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, 
 df.scale(exclude_col=1)
 df.describe()
 model = processing.NeuralNetwork(topology=args.topology, nb_itertion=1000, regularization_rate=0)
-model.train(np.delete(df.data, 1, axis=1), df.data[:, 1], seed=4, gradient_checking=args.grad_checking, verbose=2)
+model.fit(np.delete(df.data, 1, axis=1), df.data[:, 1], seed=4, gradient_checking=args.grad_checking, verbose=2)
 print("model1\n", y_pred)
