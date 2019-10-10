@@ -110,23 +110,6 @@ class NeuralNetwork(Model.Classification):
         regul = regul * self.regularization / (2 * Y.shape[0])
         return cost + regul
 
-    def _compute_accuracy(self, y, y_pred):
-        for i in range(y.shape[0]):
-            self.confusion_matrix[int(y_pred[i]), int(y[i])] += 1
-        total_predicted = np.sum(self.confusion_matrix, axis=1)
-        total_true = np.sum(self.confusion_matrix, axis=0)
-        true_positive = np.diagonal(self.confusion_matrix)
-        self.precision = true_positive / total_true
-        self.precision = np.insert(self.precision, 0, np.average(self.precision))
-        self.recall = np.zeros(true_positive.shape, dtype=float)
-        np.divide(true_positive, total_predicted, out=self.recall, where=(total_predicted != 0))
-        self.recall = np.insert(self.recall, 0, np.average(self.recall))
-        self.f1score = np.zeros(self.precision.shape, dtype=float)
-        tmp = self.precision + self.recall
-        np.divide((2 * self.precision * self.recall), tmp, out=self.f1score, where=(tmp != 0))
-        self.f1score = np.insert(self.f1score, 0, np.average(self.f1score))
-        self.accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
-
     def _init_neural_network(self, seed=None):
         """
         Initialiaze the network: allocate space memory for the matrices according to the network topology.
@@ -209,7 +192,7 @@ class NeuralNetwork(Model.Classification):
         self._init_neural_network(seed)
         self.cost_history = []
         Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
-        y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
+        Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         for i in range(self.nb_iter):
             if verbose >= 1 and i % 100 == 0:
                 print("iteration: {}".format(i))
@@ -218,16 +201,15 @@ class NeuralNetwork(Model.Classification):
             for m in range(X.shape[0]):
                 self.unit[0] = X[m]
                 self._forward_propagation()
-                y_pred[m] = self.unit[-1]
+                Y_pred[m] = self.unit[-1]
                 self._backpropagation(Y[m])
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
-            self.cost_history.append(self._compute_cost(Y=Y, H=y_pred))
-        # Y_pred = self._compute_hypothesis(X)
-        # y_pred = self._to_class_id(Y_pred)
-        # self._compute_accuracy(y, y_pred)
+            self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
+        y_pred = self._to_class_id(Y_pred)
+        self._compute_accuracy(y, y_pred)
         if verbose >= 1:
             print("Training completed!")
-            # self.print_accuracy()
+            self.print_accuracy()
         if verbose >= 2:
             self.plot_training()
 

@@ -36,6 +36,23 @@ class Classification:
         print("\nPerformance:")
         self.print_accuracy()
 
+    def _compute_accuracy(self, y, y_pred):
+        for i in range(y.shape[0]):
+            self.confusion_matrix[int(y_pred[i]), int(y[i])] += 1
+        total_predicted = np.sum(self.confusion_matrix, axis=1)
+        total_true = np.sum(self.confusion_matrix, axis=0)
+        true_positive = np.diagonal(self.confusion_matrix)
+        self.precision = true_positive / total_true
+        self.precision = np.insert(self.precision, 0, np.average(self.precision))
+        self.recall = np.zeros(true_positive.shape, dtype=float)
+        np.divide(true_positive, total_predicted, out=self.recall, where=(total_predicted != 0))
+        self.recall = np.insert(self.recall, 0, np.average(self.recall))
+        self.f1score = np.zeros(self.precision.shape, dtype=float)
+        tmp = self.precision + self.recall
+        np.divide((2 * self.precision * self.recall), tmp, out=self.f1score, where=(tmp != 0))
+        self.f1score = np.insert(self.f1score, 0, np.average(self.f1score))
+        self.accuracy = np.count_nonzero(np.equal(y, y_pred)) / y.shape[0]
+
     def print_accuracy(self, class_name=None):
         """
         Print model's performance scores (accuracy, recall, precision, F1score)
