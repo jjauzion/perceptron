@@ -5,19 +5,6 @@ from src import dataframe
 from src import processing
 
 
-def is_positive(value):
-    f_value = float(value)
-    if f_value < 0:
-        raise argparse.ArgumentTypeError("'{}' is not a valid positive value.".format(value))
-    return f_value
-
-
-def is_positive_int(value):
-    i_value = int(value)
-    if i_value < 0:
-        raise argparse.ArgumentTypeError("'{}' is not a valid positive int value.".format(value))
-    return i_value
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str, help="train dataset file to be used")

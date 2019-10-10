@@ -99,3 +99,4 @@ def one_hot_encode(y, nb_class):
     for i in range(nb_class):
         Y[:, i] = [is_class(val, i) for val in y]
     return Y
+

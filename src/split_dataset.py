@@ -3,10 +3,13 @@ from pathlib import Path
 import argparse
 import numpy as np
 
+from src import check_arg
+
 parser = argparse.ArgumentParser()
 parser.add_argument("dataset", help="Path to the dataset to split")
 parser.add_argument("--train_output", default="data/data_train.csv", help="file where to save train dataset")
 parser.add_argument("--cv_output", default="data/data_test.csv", help="file where to save cross validation dataset")
+parser.add_argument("-r", "--ts_ratio", type=check_arg.is_percentage, default=0.8, help="ration of data to put in the training set (eg: 0.8 for 80%)")
 args = parser.parse_args()
 
 try:
@@ -14,7 +17,7 @@ try:
 except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
     print("Could not read file '{}' because : {}".format(Path(args.file), err))
     exit(0)
-mask = np.random.rand(df.shape[0]) < 0.8
+mask = np.random.rand(df.shape[0]) < args.ts_ratio
 df_train = df.iloc[mask, :]
 df_test = df.iloc[~mask, :]
 try:

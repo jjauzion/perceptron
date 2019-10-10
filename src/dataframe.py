@@ -55,7 +55,6 @@ class DataFrame:
     # DATA ANALYSIS FUNCTION
 
     def describe(self, floating_point=2):
-        print("data = \n{}\nheader='{}'".format(self.data, self.header))
         self.count_nan()
         stats = np.array([
             self.count(), self.mean(), self.std(), self.min(),
