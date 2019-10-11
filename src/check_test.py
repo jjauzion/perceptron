@@ -6,7 +6,7 @@ from src import processing
 from src import toolbox
 
 
-def check_test(df_tool, df=None, df_file=None, model=None, model_file=None):
+def check_test(df_tool, df=None, df_file=None, model=None, model_file=None, verbose=1):
     if bool(df) == bool(df_file):
         raise AttributeError("Only one of dataframe and df_file can be defined")
     if bool(model) == bool(model_file):
@@ -30,4 +30,6 @@ def check_test(df_tool, df=None, df_file=None, model=None, model_file=None):
             exit(0)
     y_pred, _ = model.predict(X)
     confusion_matrix, precision, recall, f1score, accuracy = toolbox.compute_accuracy(y, y_pred)
-    toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
+    if verbose >= 1:
+        toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
+    return f1score[0]

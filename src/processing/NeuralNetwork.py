@@ -203,7 +203,7 @@ class NeuralNetwork(Model.Classification):
         while i < nb_iteration if isinstance(nb_iteration, int) else delta_cost > 0.01 and i < max_iter:
             if verbose >= 1 and (i + 1) % 100 == 0:
                 print("iteration: {}".format(self.nb_iteration_ran + i + 1))
-                print("delta cost = {}%".format(delta_cost))
+                print("delta cost = {}%".format(round(delta_cost, 3)))
             for l in range(len(self.topology) - 1):
                 self.w_delta[l][:] = 0
             for m in range(X.shape[0]):
@@ -214,9 +214,9 @@ class NeuralNetwork(Model.Classification):
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
             self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
             if i >= 1:
-                delta_cost = round((self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1], 3)
-                i += 1
-        self.nb_iteration_ran += i + 1
+                delta_cost = (self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1]
+            i += 1
+        self.nb_iteration_ran += i
         y_pred = self._to_class_id(Y_pred)
         self.compute_accuracy(y, y_pred)
         if verbose >= 1:
