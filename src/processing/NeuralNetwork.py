@@ -21,7 +21,7 @@ class NeuralNetwork(Model.Classification):
              Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
-    def __init__(self, topology=None, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, model_name=None):
+    def __init__(self, topology=None, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, model_name=None, seed=None):
         """
 
         :param nb_iteration:
@@ -30,6 +30,7 @@ class NeuralNetwork(Model.Classification):
         :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
         layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
         :param model_name:
+        :param seed: seed to be used for the random initialisation of the weights.
         """
         self.topology = topology if topology is not None else [2, 1]
         self.weight = None
@@ -38,6 +39,27 @@ class NeuralNetwork(Model.Classification):
         self.delta = None
         Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, self.topology[-1],
                                       model_name)
+        self.init_neural_network(seed)
+
+    def init_neural_network(self, seed=None):
+        """
+        Initialiaze the network: allocate space memory for the matrices according to the network topology.
+        Note that for convenience, self.z[0] and self.delta[0] are initialized although they are useless for the
+        input layer. This allow a uniform definition of j for the layer number when calling the matrices.
+        :param seed: seed value to be used for the random initialisation of the weights
+        """
+        self.weight = []
+        self.w_delta = []
+        self.unit = []
+        self.delta = []
+        for l in range(0, len(self.topology)):
+            self.unit.append(np.zeros(self.topology[l]))
+            self.delta.append([np.zeros(self.topology[l])])
+            if l < len(self.topology) - 1:
+                if seed is not None:
+                    np.random.seed(seed + l)
+                self.weight.append(np.random.rand(self.topology[l + 1], self.topology[l] + 1))
+                self.w_delta.append(np.zeros((self.topology[l + 1], self.topology[l] + 1)))
 
     def describe(self):
         """Print model characterisic"""
@@ -114,26 +136,6 @@ class NeuralNetwork(Model.Classification):
         regul = regul * self.regularization / (2 * Y.shape[0])
         return cost + regul
 
-    def _init_neural_network(self, seed=None):
-        """
-        Initialiaze the network: allocate space memory for the matrices according to the network topology.
-        Note that for convenience, self.z[0] and self.delta[0] are initialized although they are useless for the
-        input layer. This allow a uniform definition of j for the layer number when calling the matrices.
-        :param seed: seed value to be used for the random initialisation of the weights
-        """
-        self.weight = []
-        self.w_delta = []
-        self.unit = []
-        self.delta = []
-        for l in range(0, len(self.topology)):
-            self.unit.append(np.zeros(self.topology[l]))
-            self.delta.append([np.zeros(self.topology[l])])
-            if l < len(self.topology) - 1:
-                if seed is not None:
-                    np.random.seed(seed + l)
-                self.weight.append(np.random.rand(self.topology[l + 1], self.topology[l] + 1))
-                self.w_delta.append(np.zeros((self.topology[l + 1], self.topology[l] + 1)))
-
     def _compute_layer_val(self, j):
         """
         compute the neuron value from the previous layer
@@ -183,17 +185,18 @@ class NeuralNetwork(Model.Classification):
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
 
-    def fit(self, X, y, seed=None, verbose=1, gradient_checking=False):
+    def fit(self, X, y, nb_iteration=None, verbose=1, gradient_checking=False):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
         :param y: vector of size n_samples
-        :param seed: seed to be used for the random initialisation of the weights.
+        :param nb_iteration: number of iteration to run. If None, will take number stored in self.nb_iteration
         :param gradient_checking: If True, enable the gradient checking at each iteration
         :param verbose:
         :return:
         """
-        self._init_neural_network(seed)
+        if nb_iteration is not None:
+            self.nb_iter = nb_iteration
         self.cost_history = []
         Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
         Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1

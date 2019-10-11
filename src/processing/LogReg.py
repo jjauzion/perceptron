@@ -53,14 +53,17 @@ class LogReg(Model.Classification):
         m = X.shape[0]
         return self.weight - self.learning_rate * (np.matmul(X.T, H - Y) / m + self.regularization * self.weight / m)
 
-    def fit(self, X, y, verbose=1):
+    def fit(self, X, y, nb_iteration=None, verbose=1):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
         :param y: vector of shape (n_samples)
+        :param nb_iteration: number of iteration to run. If None, will take number stored in self.nb_iteration
         :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing ; 2: plot and print
         :return: y_pred from X after training, vector of shape (n_samples)
         """
+        if nb_iteration is not None:
+            self.nb_iter = nb_iteration
         X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
         Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
         self.weight = np.random.random((X.shape[1], self.nb_output))

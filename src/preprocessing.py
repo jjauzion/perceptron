@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 import pickle
+import collections
 
 
 class IdentityScale:
@@ -130,8 +131,17 @@ class LabelEncoder:
         if classes is not None:
             self.fit(classes)
 
-    def fit(self, classes):
-        self._class = list(set(classes))
+    def fit(self, classes, order="keep"):
+        """
+
+        :param classes:
+        :param order: 'keep' -> keep ordered of the classes list and assign number in this order
+                      'sort' -> sort classes in ascending order first and then assign number in this order
+        """
+        if order == "sort":
+            self._class = sorted(list(set(classes)))
+        elif order == "keep":
+            self._class = list(collections.OrderedDict.fromkeys(classes))
 
     def transform(self, classes, ignore_unknown_class=True):
         try:
