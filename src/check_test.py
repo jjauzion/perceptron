@@ -29,10 +29,5 @@ def check_test(df_tool, df=None, df_file=None, model=None, model_file=None):
             print("Could not read file '{}' because : {}".format(Path(model_file), err))
             exit(0)
     y_pred, _ = model.predict(X)
-    print("y_pred =\n{}\ny_pred_val =\n{}".format(y_pred, _))
     confusion_matrix, precision, recall, f1score, accuracy = toolbox.compute_accuracy(y, y_pred)
     toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
-
-
-if __name__ == "__main__":
-    check_test("model/data_train_scale.pkl", df_file="data/data_test.csv", model_file="model/m1.pkl")

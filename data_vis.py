@@ -14,5 +14,5 @@ except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, 
     exit(0)
 df.describe()
 df.pair_plot()
-# df.scatter(xcol=2, ycol=4)
+# df_train.scatter(xcol=2, ycol=4)
 print("finish")

@@ -79,7 +79,7 @@ class DataFrame:
         """
 
         :param scale_type: minmax (default) or meannorm
-        :param first_col: nb of column at the beginning of the df that shall not be scaled
+        :param first_col: nb of column at the beginning of the df_train that shall not be scaled
         :param exclude_col: int -> index of one column to exclude of the scaling
         :return:
         """

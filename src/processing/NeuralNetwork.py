@@ -21,10 +21,9 @@ class NeuralNetwork(Model.Classification):
              Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
-    def __init__(self, topology=None, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, model_name=None, seed=None):
+    def __init__(self, topology=None, learning_rate=0.1, regularization_rate=0, model_name=None, seed=None):
         """
 
-        :param nb_iteration:
         :param learning_rate:
         :param regularization_rate:
         :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
@@ -37,7 +36,7 @@ class NeuralNetwork(Model.Classification):
         self.w_delta = None
         self.unit = None
         self.delta = None
-        Model.Classification.__init__(self, nb_iteration, learning_rate, regularization_rate, self.topology[-1],
+        Model.Classification.__init__(self, learning_rate, regularization_rate, self.topology[-1],
                                       model_name)
         self.init_neural_network(seed)
 
@@ -185,24 +184,26 @@ class NeuralNetwork(Model.Classification):
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
 
-    def fit(self, X, y, nb_iteration=None, verbose=1, gradient_checking=False):
+    def fit(self, X, y, nb_iteration=1000, verbose=1, gradient_checking=False, max_iter=10000):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
         :param y: vector of size n_samples
-        :param nb_iteration: number of iteration to run. If None, will take number stored in self.nb_iteration
+        :param nb_iteration: number of iteration to run. If 'auto', will run until delta_cost < 0.01% or max_iter
         :param gradient_checking: If True, enable the gradient checking at each iteration
         :param verbose:
         :return:
         """
-        if nb_iteration is not None:
-            self.nb_iter = nb_iteration
-        self.cost_history = []
+        if nb_iteration != "auto" and not isinstance(nb_iteration, int):
+            raise AttributeError("nb_iteration shall either be an int or set to 'auto'. Got '{}'".format(nb_iteration))
         Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
         Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
-        for i in range(self.nb_iter):
-            if verbose >= 1 and i % 100 == 0:
-                print("iteration: {}".format(i))
+        i = 0
+        delta_cost = 100
+        while i < nb_iteration if isinstance(nb_iteration, int) else delta_cost > 0.01 and i < max_iter:
+            if verbose >= 1 and (i + 1) % 100 == 0:
+                print("iteration: {}".format(self.nb_iteration_ran + i + 1))
+                print("delta cost = {}%".format(delta_cost))
             for l in range(len(self.topology) - 1):
                 self.w_delta[l][:] = 0
             for m in range(X.shape[0]):
@@ -212,6 +213,10 @@ class NeuralNetwork(Model.Classification):
                 self._backpropagation(Y[m])
             self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
             self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
+            if i >= 1:
+                delta_cost = round((self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1], 3)
+                i += 1
+        self.nb_iteration_ran += i + 1
         y_pred = self._to_class_id(Y_pred)
         self.compute_accuracy(y, y_pred)
         if verbose >= 1:
