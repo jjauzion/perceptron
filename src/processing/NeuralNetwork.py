@@ -184,6 +184,16 @@ class NeuralNetwork(Model.Classification):
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
 
+    def _check_fit_input(self, X, y, nb_iteration, max_iter):
+        if nb_iteration != "auto" and not isinstance(nb_iteration, int):
+            raise AttributeError("nb_iteration shall either be an int or set to 'auto'. Got '{}'".format(nb_iteration))
+        if not isinstance(max_iter, int):
+            raise AttributeError("max_iter shall be an int. Got '{}'".format(nb_iteration))
+        if X.shape[1] != self.topology[0]:
+            raise AttributeError("X.shape[1]='{}' does not match with the network topology[0]='{}'".format(X.shape[1], self.topology[0]))
+        if y.ndim > 1 or y.shape[0] != X.shape[0]:
+            raise AttributeError("y shall be a vector of same lenght as X.shape[0]='{}'. Got y.shape='{}'".format(X.shape[0], y.shape))
+
     def fit(self, X, y, nb_iteration=1000, verbose=1, gradient_checking=False, max_iter=10000):
         """
 
@@ -194,8 +204,7 @@ class NeuralNetwork(Model.Classification):
         :param verbose:
         :return:
         """
-        if nb_iteration != "auto" and not isinstance(nb_iteration, int):
-            raise AttributeError("nb_iteration shall either be an int or set to 'auto'. Got '{}'".format(nb_iteration))
+        self._check_fit_input(X, y, nb_iteration, max_iter)
         Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
         Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         i = 0
