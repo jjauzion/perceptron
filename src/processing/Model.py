@@ -8,7 +8,7 @@ from .. import toolbox
 
 class Classification:
 
-    def __init__(self, nb_iteration=1000, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
+    def __init__(self, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
         """
 
         :param nb_iteration:
@@ -16,7 +16,6 @@ class Classification:
         :param regularization_rate:
         :param model_name:
         """
-        self.nb_iter = nb_iteration
         self.learning_rate = learning_rate
         self.regularization = 0 if regularization_rate is None else regularization_rate
         self.name = model_name
@@ -27,12 +26,14 @@ class Classification:
         self.recall = [-1]
         self.f1score = [-1]
         self.accuracy = -1
-        self.cost_history = np.zeros(nb_iteration)
+        self.cost_history = []
         self.weight = None
+        self.nb_iteration_ran = 0
 
     def describe(self):
         """Print model characterisic"""
         print("Model: {}".format(self.name))
+        print("Trained on {} iterations".format(self.nb_iteration_ran))
         print("\nPerformance:")
         self.print_accuracy()
 

@@ -9,8 +9,8 @@ from .. import toolbox
 
 class LogReg(Model.Classification):
 
-    def __init__(self, nb_itertion=1000, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
-        Model.Classification.__init__(self, nb_itertion, learning_rate, regularization_rate, nb_output_unit, model_name)
+    def __init__(self, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
+        Model.Classification.__init__(self, learning_rate, regularization_rate, nb_output_unit, model_name)
 
     def describe(self):
         """Print model characterisic"""
@@ -70,7 +70,8 @@ class LogReg(Model.Classification):
         for i in range(self.nb_iter):
             H = self._compute_hypothesis(X)
             self.weight = self._update_weight(X, Y, H)
-            self.cost_history[i] = self._compute_cost(X, Y, H)
+            self.cost_history.append(self._compute_cost(X, Y, H))
+        self.nb_iteration_ran += i + 1
         Y_pred = self._compute_hypothesis(X)
         y_pred = self._to_class_id(Y_pred)
         self.compute_accuracy(y, y_pred)

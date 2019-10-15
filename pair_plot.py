@@ -24,7 +24,7 @@ if __name__ == "__main__":
     except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError, OSError) as err:
         print("Could not read or parse file '{}' because : {}".format(Path(args.file), err))
         exit(0)
-    # num_df = df.drop(labels=df.columns[[1, 2, 3, 4]], axis=1)
+    # num_df = df_train.drop(labels=df_train.columns[[1, 2, 3, 4]], axis=1)
     hue_col = df.columns[args.hue_col] if args.hue_col is not None else None
     g = sns.pairplot(df.sample(100), hue=hue_col, dropna=True)
     print("done")

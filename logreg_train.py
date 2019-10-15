@@ -9,7 +9,7 @@ from src import processing
 parser = argparse.ArgumentParser()
 parser.add_argument("file", type=str, help="train dataset file to be used")
 parser.add_argument("-n", "--name", type=str, default="model", help="name of the model")
-parser.add_argument("-o", "--save_dir", type=str, default="model", help="directory where to save model and df")
+parser.add_argument("-o", "--save_dir", type=str, default="model", help="directory where to save model and df_train")
 parser.add_argument("-s", "--scale", type=str, choices=["minmax", "meannorm"], default="minmax", help="type of scale to be used for data normalization")
 parser.add_argument("-r", "--regul_rate", type=is_positive, default=None, help="Value of the regularization rate. 0 or None if no regul (default).")
 parser.add_argument("-lr", "--learning_rate", type=is_positive, default=0.1, help="Learning rate value (0.1 by default)")
