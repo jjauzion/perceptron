@@ -28,7 +28,7 @@ def check_test(df_tool, df=None, df_file=None, model=None, model_file=None, verb
         except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
             print("Could not read file '{}' because : {}".format(Path(model_file), err))
             exit(0)
-    y_pred, _ = model.predict(X)
+    y_pred, _ = model.predict(X, verbose=verbose)
     confusion_matrix, precision, recall, f1score, accuracy = toolbox.compute_accuracy(y, y_pred)
     if verbose >= 1:
         toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
