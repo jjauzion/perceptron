@@ -1,17 +1,18 @@
 from pathlib import Path
 import numpy as np
 import multiprocessing
+import os
 
 from src import check_test
 from src import processing
 from src import dataframe
 
 
-def train_model(connec, topology, id_nb):
-    lc_stat = np.zeros((topology_range["max_hidden_layer"] * len(l_unit) * len(regul_range), 1))
+def train_model(id_nb):
     topology = str(nb_input) + "," + "{},".format(topology_range["max_unit"]) * l + str(u) + "," + str(nb_output)
     model_name = "model_{}_r{}".format(topology, r)
-    print("----------------------\n", model_name)
+    ppid = os.getppid()
+    log = "{}|----------------------\n{}|{}\n".format(ppid, ppid, model_name)
     model = processing.NeuralNetwork(topology=[int(e) for e in topology.split(",")], regularization_rate=r, model_name=model_name, seed=4)
     delta_cost = 100
     total_iter = 0
@@ -21,19 +22,15 @@ def train_model(connec, topology, id_nb):
         model.fit(np.delete(df_train.data, 1, axis=1), df_train.data[:, 1], verbose=0, nb_iteration=100)
         total_iter += step
         delta_cost = (model.cost_history[-2] - model.cost_history[-1]) * 100 / model.cost_history[-1]
-        test_score.append(check_test.check_test(df_tool, df_file=test_file, model=model))
+        test_score.append(check_test.check_test(df_tool, df_file=test_file, model=model, verbose=0))
         train_score.append(model.f1score[0])
-        print("i={} ; delta_cost={}".format(total_iter, delta_cost))
+        log += "{}|i={} ; f1score train={} test={} ; delta_cost={}\n".format(ppid, total_iter, train_score[-1], test_score[-1], delta_cost)
     model.save_model(Path("model/{}.pkl".format(model_name)))
     convergence = model.cost_history[::step]
     model_stat = np.array([test_score, train_score, convergence]).T
     np.savetxt("model/stat_id{}_{}.csv".format(id_nb, model_name), model_stat, delimiter=",", header="test_score,train_score,cost")
-    lc_stat[0] = id_nb
-    lc_stat[1] = test_score[-1]
-    lc_stat[2] = train_score[-1]
-    lc_stat[3] = np.prod([int(e) for e in topology.split(",")])
-    lc_stat[4] = r
-    lc_stat[5] = model.nb_iteration_ran
+    print(log)
+    return [id_nb, test_score[-1], train_score[-1], np.prod([int(e) for e in topology.split(",")]), r, model.nb_iteration_ran]
 
 
 if __name__ == "__main__":
