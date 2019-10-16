@@ -15,7 +15,7 @@ def train_model(task_input):
     df = task_input[3]
     model_name = "model_{}_r{}".format(model_topology, model_regul_rate)
     pid = os.getpid()
-    log = "{}|----------------------\n{}|{}\n".format(pid, pid, model_name)
+    log = "{}|----------------------\n{}|model:'{}' ; id:'{}'\n".format(pid, pid, model_name, model_id)
     model = processing.NeuralNetwork(topology=[int(e) for e in model_topology.split(",")], regularization_rate=model_regul_rate, model_name=model_name, seed=4)
     delta_cost = 100
     total_iter = 0
