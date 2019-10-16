@@ -22,6 +22,7 @@ except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, 
     print("Could not read file '{}' because : {}".format(Path(args.file), err))
     exit(0)
 df.scale(exclude_col=1)
+df.save_scale_and_label(Path("model/data_train_scale.pkl"))
 df.describe()
 print("Nb de 1 : ", np.count_nonzero(df.data[:, 1] == 1))
 print("Nb de 0 : ", np.count_nonzero(df.data[:, 1] == 0))
@@ -39,6 +40,5 @@ else:
 nb_iter = args.iteration if args.iteration > 0 else "auto"
 model.fit(np.delete(df.data, 1, axis=1), df.data[:, 1], gradient_checking=args.grad_checking, verbose=2, nb_iteration=nb_iter)
 model.save_model(Path("model/m1.pkl"))
-df.save_scale_and_label(Path("model/data_train_scale.pkl"))
 check_test.check_test("model/data_train_scale.pkl", df_file="data/data_test.csv", model=model)
 

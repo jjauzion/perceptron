@@ -45,11 +45,10 @@ if __name__ == "__main__":
     topology_range = {
         "max_hidden_layer": 2,
         "max_unit": 31,
-        "min_unit": 27,
+        "min_unit": 4,
         "unit_step": 4
     }
-    # regul_range = [0, 0.01, 0.1, 1, 10]
-    regul_range = [0]
+    regul_range = [0, 0.01, 0.1, 1, 10]
     df_tool = "model/data_train_scale.pkl"
 
     df_train = dataframe.DataFrame()
@@ -70,8 +69,8 @@ if __name__ == "__main__":
                 id_nb += 1
                 topology = str(nb_input) + "," + "{},".format(topology_range["max_unit"]) * l + str(u) + "," + str(nb_output)
                 task.append((id_nb, topology, r, df_train))
-    print(task)
-    pool = mp.Pool(4)
+    print("nb of task = ", len(task))
+    pool = mp.Pool(16)
     stat = np.array(pool.map(train_model, task))
     header = "id,test_score,train_score,polynomial_degree,regul_rate,nb_iterations"
     np.savetxt("model/stat.csv", stat, delimiter=",", header=header)
