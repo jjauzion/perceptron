@@ -23,6 +23,7 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
         df.scale(exclude_col=1)
     X = np.delete(df.data, 1, axis=1)
     y = df.data[:, 1]
+    y_1hot = toolbox.one_hot_encode(y, 2)
     if model is None:
         model = processing.NeuralNetwork()
         try:
@@ -32,7 +33,7 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
             exit(0)
     y_pred, h = model.predict(X, verbose=verbose)
     confusion_matrix, precision, recall, f1score, accuracy = toolbox.compute_accuracy(y, y_pred)
-    loss = model._compute_cost(y, h)
+    loss = model._compute_cost(y_1hot, h)
     if verbose >= 1:
         toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
     return f1score[0], loss

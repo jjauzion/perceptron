@@ -34,7 +34,7 @@ def train_model(task_input):
     model_stat = np.array([test_score, train_score, convergence]).T
     np.savetxt("model/stat_id{}_{}.csv".format(model_id, model_name), model_stat, delimiter=",", header="test_score,train_score,cost")
     print(log)
-    return [model_id, test_score[-1], train_score[-1], np.prod([int(e) for e in model_topology.split(",")]), model_regul_rate, model.nb_iteration_ran]
+    return [model_id, model_topology, test_score[-1], train_score[-1], np.prod([int(e) for e in model_topology.split(",")]), model_regul_rate, model.nb_iteration_ran]
 
 
 if __name__ == "__main__":
@@ -72,6 +72,6 @@ if __name__ == "__main__":
     print("nb of task = ", len(task))
     pool = mp.Pool(16)
     stat = np.array(pool.map(train_model, task))
-    header = "id,test_score,train_score,polynomial_degree,regul_rate,nb_iterations"
+    header = "id,topology,test_score,train_score,polynomial_degree,regul_rate,nb_iterations"
     np.savetxt("model/stat.csv", stat, delimiter=",", header=header)
 

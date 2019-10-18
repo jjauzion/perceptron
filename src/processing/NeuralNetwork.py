@@ -178,11 +178,11 @@ class NeuralNetwork(Model.Classification):
             regul = self.weight[l] * self.regularization
             regul[0] = 0
             w_grad = (self.w_delta[l] + regul) / nb_of_sample
-            self.weight[l] -= self.learning_rate * w_grad
             if gradient_checking:
                 if X is None or Y is None:
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
+            self.weight[l] -= self.learning_rate * w_grad
 
     def _check_fit_input(self, X, y, nb_iteration, max_iter):
         if nb_iteration != "auto" and not isinstance(nb_iteration, int):
