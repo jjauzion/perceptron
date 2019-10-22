@@ -22,8 +22,7 @@ def train_model(task_input):
     test_score = []
     train_score = []
     step = 100
-    # while (delta_cost > 0.01 or total_iter < 3000) and total_iter < 10000:
-    while (delta_cost > 1 or total_iter < 300) and total_iter < 10000:
+    while (delta_cost > 0.01 or total_iter < 3000) and total_iter < 10000:
         model.fit(np.delete(df_train.data, 1, axis=1), df_train.data[:, 1], verbose=0, nb_iteration=step)
         total_iter += step
         delta_cost = (model.cost_history[-2] - model.cost_history[-1]) * 100 / model.cost_history[-1]
@@ -46,13 +45,12 @@ if __name__ == "__main__":
     nb_input = 31
     nb_output = 1
     topology_range = {
-        "max_hidden_layer": 1,
+        "max_hidden_layer": 4,
         "max_unit": 31,
-        "min_unit": 27,
+        "min_unit": 4,
         "unit_step": 4
     }
-    # regul_range = [0, 0.01, 0.1, 1, 10]
-    regul_range = [0]
+    regul_range = [0, 0.01, 0.1, 1, 10]
     df_tool = "model/data_train_scale.pkl"
 
     df_train = wrapper_fct.create_dataframe(train_file, header=False, converts={1: ["B", "M"]})
