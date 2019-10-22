@@ -3,21 +3,8 @@ from pathlib import Path
 import numpy as np
 
 from src import check_arg
-from src import check_test
+from src import wrapper_fct
 from src import processing
-from src import dataframe
-
-
-def create_dataframe(file, header, converts=None, scale=None):
-    if bool(converts) and bool(scale):
-        raise AttributeError("Can't define both scale and converts argument")
-    df = dataframe.DataFrame(import_scale_and_label=scale)
-    try:
-        df.read_from_csv(file, header=header, converts=converts)
-    except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
-        print("Could not read file '{}' or '{}' because : {}".format(Path(args.train_file), Path(args.test_file), err))
-        exit(0)
-    return df
 
 
 if __name__ == "__main__":
@@ -31,13 +18,13 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--step", type=check_arg.is_positive_int, default=100, help="Step betweeen two print report")
     parser.add_argument("-m", "--model", type=str, help="load an existing model to pursue training")
     args = parser.parse_args()
-    df_train = create_dataframe(args.train_file, not args.no_header, converts={1: ["B", "M"]})
+    df_train = wrapper_fct.create_dataframe(args.train_file, not args.no_header, converts={1: ["B", "M"]})
     df_train.scale(exclude_col=1)
     df_train.save_scale_and_label(Path("model/data_train_scale.pkl"))
     df_train.describe()
     print("Nb de 1 : ", np.count_nonzero(df_train.data[:, 1] == 1))
     print("Nb de 0 : ", np.count_nonzero(df_train.data[:, 1] == 0))
-    df_test = create_dataframe(args.test_file, not args.no_header, scale=Path("model/data_train_scale.pkl"))
+    df_test = wrapper_fct.create_dataframe(args.test_file, not args.no_header, scale=Path("model/data_train_scale.pkl"))
 
     if args.model is None:
         model = processing.NeuralNetwork(topology=args.topology, regularization_rate=0,
@@ -53,9 +40,8 @@ if __name__ == "__main__":
         for i in range(args.step, nb_iter, args.step):
             model.fit(np.delete(df_train.data, 1, axis=1), df_train.data[:, 1], gradient_checking=args.grad_checking,
                       verbose=0, nb_iteration=args.step)
-            test_f1score, test_loss = check_test.check_test("model/data_train_scale.pkl", df_file="data/data_test.csv",
-                                                            model=model, verbose=0)
+            test_f1score, test_loss = wrapper_fct.check_test(df=df_test, model=model, verbose=0)
             print("iteration:{} ; train_loss={:.3f} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}%".format(
                 model.nb_iteration_ran, model.cost_history[-1], test_loss, model.f1score[0] * 100, test_f1score * 100))
     model.save_model(Path("model/m1.pkl"))
-    check_test.check_test("model/data_train_scale.pkl", df_file="data/data_test.csv", model=model)
+    wrapper_fct.check_test(df=df_test, model=model)

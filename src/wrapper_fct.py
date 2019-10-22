@@ -37,3 +37,15 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
     if verbose >= 1:
         toolbox.print_accuracy(precision, recall, f1score, accuracy, 2, confusion_matrix=confusion_matrix)
     return f1score[0], loss
+
+
+def create_dataframe(file, header, converts=None, scale=None):
+    if bool(converts) and bool(scale):
+        raise AttributeError("Can't define both scale and converts argument")
+    df = dataframe.DataFrame(import_scale_and_label=scale)
+    try:
+        df.read_from_csv(file, header=header, converts=converts)
+    except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
+        print("Could not read file '{}' because : {}".format(Path(file), err))
+        exit(0)
+    return df
