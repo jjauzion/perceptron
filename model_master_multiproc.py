@@ -1,4 +1,5 @@
 from pathlib import Path
+import itertools
 import numpy as np
 import multiprocessing as mp
 import os
@@ -29,7 +30,6 @@ def train_model(task_input):
         test_score.append(wrapper_fct.check_test(df=df_test, model=model, verbose=0)[0])
         train_score.append(model.f1score[0])
         log += "{}|i={} ; f1score train={} test={} ; delta_cost={}\n".format(pid, total_iter, train_score[-1], test_score[-1], delta_cost)
-        print(log)
     model.save_model(Path("model/{}.pkl".format(model_name)))
     convergence = model.cost_history[::step]
     model_stat = np.array([test_score, train_score, convergence]).T
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     nb_input = 31
     nb_output = 1
     topology_range = {
-        "max_hidden_layer": 4,
+        "max_hidden_layer": 2,
         "max_unit": 31,
         "min_unit": 4,
         "unit_step": 4
@@ -58,18 +58,19 @@ if __name__ == "__main__":
     df_train.save_scale_and_label(Path(df_tool))
     df_test = wrapper_fct.create_dataframe(test_file, header=False, scale=Path(df_tool))
     df_test.scale(exclude_col=1)
-    l_unit = list(range(topology_range["min_unit"], topology_range["max_unit"] + 1, topology_range["unit_step"]))
+    l_unit = [str(e) for e in list(range(topology_range["min_unit"], topology_range["max_unit"] + topology_range["unit_step"], topology_range["unit_step"]))]
     stat = np.zeros((topology_range["max_hidden_layer"] * len(l_unit) * len(regul_range), 6))
     id_nb = -1
     task = []
+    topo_combo = []
     for l in range(topology_range["max_hidden_layer"]):
-        for u in l_unit:
-            for r in regul_range:
-                id_nb += 1
-                topology = str(nb_input) + "," + "{},".format(topology_range["max_unit"]) * l + str(u) + "," + str(nb_output)
-                task.append((id_nb, topology, r, df_train, df_test))
-    print("nb of task = ", len(task))
-    pool = mp.Pool(2)
+        topo_combo += list(itertools.combinations_with_replacement(reversed(l_unit), l + 1))
+    for topo in topo_combo:
+        topology = str(nb_input) + "," + ",".join(topo) + "," + str(nb_output)
+        for r in regul_range:
+            id_nb += 1
+            task.append((id_nb, topology, r, df_train, df_test))
+    pool = mp.Pool(16)
     stat = np.array(pool.map(train_model, task))
     header = "id,topology,test_score,train_score,polynomial_degree,regul_rate,nb_iterations"
     np.savetxt("model/stat.csv", X=stat, delimiter=",", header=header, fmt="%s")
