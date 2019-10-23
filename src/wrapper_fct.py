@@ -23,7 +23,7 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
         df.scale(exclude_col=1)
     X = np.delete(df.data, 1, axis=1)
     y = df.data[:, 1]
-    y_1hot = toolbox.one_hot_encode(y, 2)
+    y_1hot = toolbox.one_hot_encode(y)
     if model is None:
         model = processing.NeuralNetwork()
         try:

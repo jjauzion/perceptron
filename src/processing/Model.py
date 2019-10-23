@@ -78,8 +78,16 @@ class Classification:
             pickle.dump(self.__dict__, fd)
 
     @staticmethod
-    def _sigmoid(X):
+    def sigmoid(X):
         return 1 / (1 + np.exp(-X))
+
+    @staticmethod
+    def softmax(X):
+        exp = np.exp(X)
+        if X.ndim > 1:
+            return (exp.T / np.sum(exp, axis=1)).T
+        else:
+            return exp / np.sum(exp)
 
     def _to_class_id(self, Y_pred):
         """

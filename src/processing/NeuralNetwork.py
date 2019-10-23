@@ -21,7 +21,7 @@ class NeuralNetwork(Model.Classification):
              Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
-    def __init__(self, topology=None, learning_rate=0.1, regularization_rate=0, model_name=None, seed=None):
+    def __init__(self, topology=None, learning_rate=0.1, regularization_rate=0, model_name=None, seed=None, activation_fct=None):
         """
 
         :param learning_rate:
@@ -30,12 +30,21 @@ class NeuralNetwork(Model.Classification):
         layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
         :param model_name:
         :param seed: seed to be used for the random initialisation of the weights.
+        :param activation_fct: activation function to be used for the last layer. Sigmoid will be used by default.
         """
         self.topology = topology if topology is not None else [2, 1]
         self.weight = None
         self.w_delta = None
         self.unit = None
         self.delta = None
+        if activation_fct == None or activation_fct == "sigmoid":
+            self.activation_function = NeuralNetwork.sigmoid
+        elif activation_fct == "softmax":
+            if self.topology[-1] < 2:
+                raise AttributeError("softmax activation function requires at least two units in the output layer")
+            self.activation_function = NeuralNetwork.softmax
+        else:
+            raise AttributeError("'{}' is not a valid activation function".format(activation_fct))
         Model.Classification.__init__(self, learning_rate, regularization_rate, self.topology[-1],
                                       model_name)
         self.init_neural_network(seed)
@@ -71,6 +80,7 @@ class NeuralNetwork(Model.Classification):
     def _compute_hypothesis_with_custom_weight(self, X, weight, layer):
         """
         Perform a forward propagation but using custom weight instead of weight stored in self.
+        This function is used only for gradient checking.
         :param X:
         :param weight:
         :param layer:
@@ -85,16 +95,23 @@ class NeuralNetwork(Model.Classification):
                     z = np.matmul(weight, a)
                 else:
                     z = np.matmul(self.weight[l - 1], a)
-                h = NeuralNetwork._sigmoid(z)
+                if layer == len(self.topology) - 1:
+                    h = self.activation_function(z)
+                else:
+                    h = NeuralNetwork.sigmoid(z)
             H[m] = h
         return H
 
     def _gradient_checking(self, X, Y, layer, w_grad, rtol=0.1, atol=0.005):
         """
         Check the weight gradient (w_grad) computed from back propagation to a numerical gradient computation
+        gradient is valid if abs(`a` - `b`) <= (`atol` + `rtol` * abs(`b`))
         :param layer: int. Layer number to be checked
         :param w_grad: weight gradient for this layer compute from back propagation
-        :return:
+        :param X: matrix of inputs
+        :param Y: matrix of true output
+        :param rtol: relative tolerance to validate the gradient
+        :param atol: absolute tolerance to validate the gradient
         """
         epsilon = 0.0001
         perturb = np.zeros(w_grad.shape)
@@ -145,7 +162,10 @@ class NeuralNetwork(Model.Classification):
         """
         a = np.insert(self.unit[j - 1], 0, 1)
         z = np.matmul(self.weight[j - 1], a)
-        return NeuralNetwork._sigmoid(z)
+        if j == len(self.topology) - 1:
+            return self.activation_function(z)
+        else:
+            return NeuralNetwork.sigmoid(z)
 
     def _forward_propagation(self):
         for l in range(1, len(self.topology)):
@@ -205,7 +225,7 @@ class NeuralNetwork(Model.Classification):
         :return:
         """
         self._check_fit_input(X, y, nb_iteration, max_iter)
-        Y = toolbox.one_hot_encode(y, self.nb_output) if self.nb_output > 1 else y.reshape(-1, 1)
+        Y = toolbox.one_hot_encode(y) if self.nb_output > 1 else y.reshape(-1, 1)
         Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         i = 0
         delta_cost = 100

@@ -26,7 +26,7 @@ class LogReg(Model.Classification):
         :param X: m by n matrix, with n the number of parameter and m nb of sample
         :return: m by nb_output_unit matrix, with m nb of sample
         """
-        return self._sigmoid(np.matmul(X, self.weight))
+        return self.sigmoid(np.matmul(X, self.weight))
 
     def _compute_cost(self, X, Y, H):
         """
