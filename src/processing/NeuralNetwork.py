@@ -81,21 +81,21 @@ class NeuralNetwork(Model.Classification):
         """
         Perform a forward propagation but using custom weight instead of weight stored in self.
         This function is used only for gradient checking.
-        :param X:
-        :param weight:
-        :param layer:
-        :return:
+        :param X: input matrix
+        :param weight: weight matrix to be used instead of the weight stored in self
+        :param layer: layer where the provided weight matrix shall be used
+        :return: H, the computed hypothesis matrix
         """
         H = np.zeros((X.shape[0], self.topology[-1]))
         for m in range(X.shape[0]):
             h = np.copy(X[m])
-            for l in range(1, len(self.topology)):
+            for current_layer in range(1, len(self.topology)):
                 a = np.insert(h, 0, 1)
-                if l - 1 == layer:
+                if current_layer - 1 == layer:
                     z = np.matmul(weight, a)
                 else:
-                    z = np.matmul(self.weight[l - 1], a)
-                if layer == len(self.topology) - 1:
+                    z = np.matmul(self.weight[current_layer - 1], a)
+                if current_layer == len(self.topology) - 1:
                     h = self.activation_function(z)
                 else:
                     h = NeuralNetwork.sigmoid(z)
@@ -145,7 +145,10 @@ class NeuralNetwork(Model.Classification):
         :param H: m by nb_output_unit matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
-        cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
+        if self.activation_function != NeuralNetwork.softmax:
+            cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
+        else:
+            cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H)))
         regul = 0
         for l in range(len(self.topology) - 1):
             regul += np.sum(self.weight[l] ** 2)

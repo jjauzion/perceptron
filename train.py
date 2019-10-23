@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iteration", type=check_arg.is_positive_int, default=500, help="Number of iteration to run")
     parser.add_argument("-s", "--step", type=check_arg.is_positive_int, default=100, help="Step betweeen two print report")
     parser.add_argument("-m", "--model", type=str, help="load an existing model to pursue training")
+    parser.add_argument("-n", "--name", type=str, default="model", help="name of the model. Will be used to save the model to a pkl file")
     parser.add_argument("-a", "--act_fct", type=str, choices=["sigmoid", "softmax"], help="Activation function to be used in the output layer. Sigmoid by default")
     parser.add_argument("-v", "--verbose", type=int, choices=[0, 1, 2], default=0, help="Level of verbosity")
     args = parser.parse_args()
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     print("Nb de 1 : ", np.count_nonzero(df_train.data[:, 1] == 1))
     print("Nb de 0 : ", np.count_nonzero(df_train.data[:, 1] == 0))
     df_test = wrapper_fct.create_dataframe(args.test_file, not args.no_header, scale=Path("model/data_train_scale.pkl"))
+    df_test.scale(exclude_col=1)
 
     if args.model is None:
         model = processing.NeuralNetwork(topology=args.topology, regularization_rate=0,
@@ -47,5 +49,5 @@ if __name__ == "__main__":
                 model.nb_iteration_ran, model.cost_history[-1], test_loss, model.f1score[0] * 100, test_f1score * 100))
     if args.verbose > 1:
         model.plot_training()
-    model.save_model(Path("model/m1.pkl"))
+    model.save_model(Path("model/{}.pkl".format(args.name)))
     wrapper_fct.check_test(df=df_test, model=model)

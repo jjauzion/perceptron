@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from src import processing
-import train
+from src import wrapper_fct
 
 
 parser = argparse.ArgumentParser()
@@ -12,7 +12,7 @@ parser.add_argument("-o", "--output", type=str, default="predicition.csv", help=
 parser.add_argument("model", type=str, help="model file to be used for prediction, pickle format")
 parser.add_argument("df_tool", type=str, help="pickle file with df scale and label")
 args = parser.parse_args()
-df_test = train.create_dataframe(args.df_file, header=None, scale=Path(args.df_tool))
+df_test = wrapper_fct.create_dataframe(args.df_file, header=None, scale=Path(args.df_tool))
 df_test.scale(exclude_col=1)
 X = np.delete(df_test.data, 1, axis=1)
 y = df_test.data[:, 1]
