@@ -15,9 +15,9 @@ class NeuralNetwork(Model.Classification):
             Each element is a matrix of size (S(j+1), S(j) + 1) with S(j) number of neurons in layer j
     unit: List of numpy array with the neuron value for each layer.
           Each element of the list is a vector of size n with n the number of neurons in layer j
-    delta: List of numpy array with the delta value for each unit of each layer. The delta is compute for the backpropagation.
+    delta: List of numpy array with the delta value for each unit of each layer.
            Each element of the list is a vector of size n with n the number of neurons in layer j
-    w_delta: List of numpy array with the delta value for each weight of each layer. The delta is computed after the backpropagation.
+    w_delta: List of numpy array with the delta value for each weight of each layer.
              Each element of the list is a matrix of same size as the weight matrix of this layer
     """
 
@@ -27,8 +27,8 @@ class NeuralNetwork(Model.Classification):
         :param learning_rate:
         :param regularization_rate:
         :param topology: list of size nb_of_layer (including input and output layer) with the nb of neuron for each
-        layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L]
-        :param model_name:
+        layer : [nb_of_n_in_layer_0, nb_of_n_in_layer_1, ...,nb_of_n_in_layer_L] (ex: [31, 16, 2])
+        :param model_name: Name used to save the model
         :param seed: seed to be used for the random initialisation of the weights.
         :param activation_fct: activation function to be used for the last layer. Sigmoid will be used by default.
         """
@@ -37,7 +37,7 @@ class NeuralNetwork(Model.Classification):
         self.w_delta = None
         self.unit = None
         self.delta = None
-        if activation_fct == None or activation_fct == "sigmoid":
+        if activation_fct is None or activation_fct == "sigmoid":
             self.activation_function = NeuralNetwork.sigmoid
         elif activation_fct == "softmax":
             if self.topology[-1] < 2:
@@ -136,15 +136,16 @@ class NeuralNetwork(Model.Classification):
         """
         Compute the cross entropy loss of prediction H versus Y true values
 
-        cost formula:  -1/m * sum(sum(Y * log(H) + (1 - Y) * log(1 - H)))
-        Note:          Z = np.sum(np.diag(X.dot(Y))) <=> Z = np.sum(X * Y.T)
-        regul formula: lambda / (2m) * sum(sum(sum(Theta^2)))
-
         self.weight : n by nb_output_unit matrix, with n the number of parameter
         :param Y: m by nb_output_unit matrix, with m nb of sample
         :param H: m by nb_output_unit matrix, with m nb of sample. Matrix of the computed hypothesis Y with the current weight
         :return:
         """
+        # I'm unsure about the math for the cost function. I would understand if formula F1 below was to be used only
+        # for cases where last layer has only one input. But test with sigmoid activation function on last layer with 2 units
+        # provided same gradient as the numerical grad checking only if cost is computed with F1.
+        # F1: cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
+        # F2: cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H)))
         if self.activation_function != NeuralNetwork.softmax:
             cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H) + (1 - np.row_stack(Y)) * np.log(1 - H)))
         else:
