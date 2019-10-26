@@ -31,7 +31,7 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
         except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
             print("Could not read file '{}' because : {}".format(Path(model_file), err))
             exit(0)
-    y_pred, h = model.predict(X, verbose=verbose)
+    y_pred, h = model.predict(X, verbose=0)
     confusion_matrix, precision, recall, f1score, accuracy = toolbox.compute_accuracy(y, y_pred)
     loss = model._compute_cost(y_1hot, h)
     if verbose >= 1:
@@ -42,10 +42,24 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
 def create_dataframe(file, header, converts=None, scale=None):
     if bool(converts) and bool(scale):
         raise AttributeError("Can't define both scale and converts argument")
-    df = dataframe.DataFrame(import_scale_and_label=scale)
+    try:
+        df = dataframe.DataFrame(import_scale_and_label=scale)
+    except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
+        print("Could not read file '{}' because : {}".format(scale, err))
+        exit(0)
     try:
         df.read_from_csv(file, header=header, converts=converts)
     except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
         print("Could not read file '{}' because : {}".format(Path(file), err))
         exit(0)
     return df
+
+
+def load_model(file):
+    model = processing.NeuralNetwork()
+    try:
+        model.load_model(Path(file))
+    except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
+        print("Could not read file '{}' because : {}".format(Path(file), err))
+        exit(0)
+    return model

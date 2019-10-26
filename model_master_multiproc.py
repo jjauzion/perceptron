@@ -74,6 +74,7 @@ if __name__ == "__main__":
         for r in regul_range:
             id_nb += 1
             task.append((id_nb, topology, r, df_train, df_test))
+    print("number of task : {}".format(len(task)))
     pool = mp.Pool(16)
     stat = np.array(pool.map(train_model, task))
     header = "id,topology,test_score,train_score,polynomial_degree,regul_rate,nb_iterations"
