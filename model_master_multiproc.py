@@ -17,7 +17,11 @@ def train_model(task_input):
     model_name = "model_{}_r{}".format(model_topology, model_regul_rate)
     pid = os.getpid()
     log = "{}|----------------------\n{}|model:'{}' ; id:'{}'\n".format(pid, pid, model_name, model_id)
-    model = processing.NeuralNetwork(topology=[int(e) for e in model_topology.split(",")], regularization_rate=model_regul_rate, model_name=model_name, seed=4)
+    model = processing.NeuralNetwork(topology=[int(e) for e in model_topology.split(",")],
+                                     regularization_rate=model_regul_rate,
+                                     model_name=model_name,
+                                     seed=4,
+                                     activation_fct="softmax")
     delta_cost = 100
     total_iter = 0
     test_score = []
@@ -43,7 +47,7 @@ if __name__ == "__main__":
     train_file = "data/data_train.csv"
     test_file = "data/data_test.csv"
     nb_input = 31
-    nb_output = 1
+    nb_output = 2
     topology_range = {
         "max_hidden_layer": 2,
         "max_unit": 31,

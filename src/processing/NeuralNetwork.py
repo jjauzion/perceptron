@@ -225,8 +225,7 @@ class NeuralNetwork(Model.Classification):
         :param y: vector of size n_samples
         :param nb_iteration: number of iteration to run. If 'auto', will run until delta_cost < 0.01% or max_iter
         :param gradient_checking: If True, enable the gradient checking at each iteration
-        :param verbose:
-        :return:
+        :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing ; 2:advance print
         """
         self._check_fit_input(X, y, nb_iteration, max_iter)
         Y = toolbox.one_hot_encode(y) if self.nb_output > 1 else y.reshape(-1, 1)
@@ -260,9 +259,9 @@ class NeuralNetwork(Model.Classification):
 
     def predict(self, X, verbose=1):
         """
-        Make prediction based on x
+        Make prediction based on X
         :param X: matrix of shape (n_samples, n_feature)
-        :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing
+        :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing ; 2:advance print
         :return: ((n_feature x nb_of_class matrix), (n_feature x 1) matrix)
         """
         if self.weight is None:
