@@ -30,22 +30,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, default="data/dataset_train.csv", help="file to describe, shall be csv format")
     parser.add_argument("-a", "--all", action="store_true", help="Scatter plot of all column in the dataset")
-    parser.add_argument("-cx", "--columnX", type=is_positive_int, default=4, help="column index to plot on x axis (0 by default)")
-    parser.add_argument("-cy", "--columnY", type=is_positive_int, default=6, help="column index to plot on y axis (2 by default)")
+    parser.add_argument("-cx", "--columnX", type=is_positive_int, help="column index to plot on x axis")
+    parser.add_argument("-cy", "--columnY", type=is_positive_int, help="column index to plot on y axis")
     args = parser.parse_args()
     df = dataframe.DataFrame()
     try:
-        classes = ["Ravenclaw", "Slytherin", "Gryffindor", "Hufflepuff"]
-        df.read_from_csv(args.file, header=True, converts={1: classes, 5: ["Left", "Right"]})
+        df.read_from_csv(args.file, header=True, converts={1: ["B", "M"]})
     except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
         print("Could not read file '{}' because : {}".format(Path(args.file), err))
         exit(0)
     if len(df.data) == 0:
         print("No data in file '{}' :(".format(Path(args.file)))
         exit(0)
-    df.drop_nan_column()
-    df.scale(scale_type="minmax", first_col=3)
     if args.all:
         scatter_all(df)
     else:
-        scatter(df, args.columnX, args.columnY, color_col=1)
+        df.scatter(args.columnX, args.columnY, color_col=1)

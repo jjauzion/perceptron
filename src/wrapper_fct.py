@@ -6,7 +6,7 @@ from src import processing
 from src import toolbox
 
 
-def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None, verbose=1):
+def check_test(target_col, df_tool=None, df_file=None, df=None, model=None, model_file=None, verbose=1):
     if bool(df) == bool(df_file):
         raise AttributeError("Only one of dataframe and df_file can be defined")
     if df_file is not None and df_tool is None:
@@ -20,9 +20,9 @@ def check_test(df_tool=None, df_file=None, df=None, model=None, model_file=None,
         except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, IndexError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
             print("Could not read file '{}' because : {}".format(Path(df_file), err))
             exit(0)
-        df.scale(exclude_col=1)
-    X = np.delete(df.data, 1, axis=1)
-    y = df.data[:, 1]
+        df.scale(exclude_col=target_col)
+    X = np.delete(df.data, target_col, axis=1)
+    y = df.data[:, target_col]
     y_1hot = toolbox.one_hot_encode(y)
     if model is None:
         model = processing.NeuralNetwork()

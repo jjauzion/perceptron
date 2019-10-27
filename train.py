@@ -21,13 +21,19 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--name", type=str, default="model", help="name of the model. Will be used to save the model to a pkl file")
     parser.add_argument("-a", "--act_fct", type=str, choices=["sigmoid", "softmax"], help="Activation function to be used in the output layer. Sigmoid by default")
     parser.add_argument("-v", "--verbose", type=int, choices=[0, 1, 2], default=1, help="Level of verbosity")
+    parser.add_argument("-tcol", "--target_col", type=check_arg.is_positive_int, default=0, help="Index of the column containing the target for prediction")
     args = parser.parse_args()
-    df_train = wrapper_fct.create_dataframe(args.train_file, not args.no_header, converts={1: ["B", "M"]})
+    df_train = wrapper_fct.create_dataframe(args.train_file, not args.no_header, converts={args.target_col: ["B", "M"]})
+    df_train.scale(exclude_col=args.target_col)
+    df_train.save_scale_and_label(Path("model/data_train_scale.pkl"))
     df_test = wrapper_fct.create_dataframe(args.test_file, not args.no_header, scale=Path("model/data_train_scale.pkl"))
+    df_test.scale(exclude_col=args.target_col)
     if df_train.data.shape[1] != df_test.data.shape[1]:
         print("Error: Number of column differs between test dataset ({}) and train dataset ({})".format(
             args.test_file, args.train_file))
         exit(0)
+    if args.topology[0] <= 0:
+        args.topology[0] = df_train.data.shape[1] - 1
     if df_train.data.shape[1] - 1 != args.topology[0]:
         print("Error: Topology first layer input number (={}) doesn't match the number of features in the dataset (={})".
               format(args.topology[0], df_train.data.shape[1] - 1))
@@ -39,14 +45,12 @@ if __name__ == "__main__":
         print("Error: last layer cannot have more unit than number of classes")
         exit(0)
 
-    df_train.scale(exclude_col=1)
-    df_train.save_scale_and_label(Path("model/data_train_scale.pkl"))
-    df_test.scale(exclude_col=1)
     if args.verbose > 0:
         print("Train dataset synthesis:")
         df_train.describe()
         print("Prediction column stat: {} samples are class '1' and {} samples are class '0'\n".format(
-            np.count_nonzero(df_train.data[:, 1] == 1), np.count_nonzero(df_train.data[:, 1] == 0)))
+            np.count_nonzero(df_train.data[:, args.target_col] == 1),
+            np.count_nonzero(df_train.data[:, args.target_col] == 0)))
     if args.model is None:
         model = processing.NeuralNetwork(topology=args.topology, regularization_rate=0,
                                          seed=4, model_name=args.name, activation_fct=args.act_fct,
@@ -58,13 +62,15 @@ if __name__ == "__main__":
     if args.verbose > 0:
         print("Start training...")
     if nb_iter == "auto":
-        model.fit(np.delete(df_train.data, 1, axis=1), df_train.data[:, 1], gradient_checking=args.grad_checking,
-                  verbose=args.verbose, nb_iteration=nb_iter)
+        model.fit(np.delete(df_train.data, args.target_col, axis=1),
+                  df_train.data[:, args.target_col],
+                  gradient_checking=args.grad_checking, verbose=args.verbose, nb_iteration=nb_iter)
     else:
         for i in range(args.step, nb_iter + args.step, args.step):
-            model.fit(np.delete(df_train.data, 1, axis=1), df_train.data[:, 1], gradient_checking=args.grad_checking,
-                      verbose=0, nb_iteration=args.step)
-            test_f1score, test_loss = wrapper_fct.check_test(df=df_test, model=model, verbose=0)
+            model.fit(np.delete(df_train.data, args.target_col, axis=1),
+                      df_train.data[:, args.target_col],
+                      gradient_checking=args.grad_checking, verbose=0, nb_iteration=args.step)
+            test_f1score, test_loss = wrapper_fct.check_test(target_col=args.target_col, df=df_test, model=model, verbose=0)
             if args.verbose > 0:
                 print("iteration:{} ; train_loss={:.3f} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}%".format(
                     model.nb_iteration_ran, model.cost_history[-1], test_loss, model.f1score[0] * 100, test_f1score * 100))
@@ -73,6 +79,6 @@ if __name__ == "__main__":
         print("Training completed.\nModel saved to '{}'\n".format(Path("model/{}.pkl".format(args.name))))
     if args.verbose > 0:
         print("Score on test set after training:")
-        wrapper_fct.check_test(df=df_test, model=model)
+        wrapper_fct.check_test(target_col=args.target_col, df=df_test, model=model)
     if args.verbose > 1:
         model.plot_training()

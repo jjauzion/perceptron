@@ -1,0 +1,11 @@
+#non informative
+0
+11
+13
+16
+20
+# correlated features
+2
+22
+5
+25

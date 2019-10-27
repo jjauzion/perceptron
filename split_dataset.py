@@ -9,14 +9,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("dataset", help="Path to the dataset to split")
 parser.add_argument("--train_output", default="data/data_train.csv", help="file where to save train dataset")
 parser.add_argument("--cv_output", default="data/data_test.csv", help="file where to save cross validation dataset")
-parser.add_argument("-r", "--ts_ratio", type=check_arg.is_percentage, default=0.8, help="ration of data to put in the training set (eg: 0.8 for 80%)")
+parser.add_argument("-r", "--ts_ratio", type=check_arg.is_percentage, default=0.8, help="ration of data to put in the training set (eg: 0.8 for 80%%)")
+parser.add_argument("-nh", "--no_header", action="store_true", help="Dataset has no header on the first line")
 args = parser.parse_args()
 
 try:
-    df = pd.read_csv(args.dataset, index_col=0)
+    df = pd.read_csv(args.dataset, index_col=0, header=None if args.no_header else 0)
 except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
     print("Could not read file '{}' because : {}".format(Path(args.file), err))
     exit(0)
+np.random.seed(10)
 mask = np.random.rand(df.shape[0]) < args.ts_ratio
 df_train = df.iloc[mask, :]
 df_test = df.iloc[~mask, :]
@@ -26,5 +28,6 @@ try:
 except (FileExistsError, FileNotFoundError, IsADirectoryError, PermissionError, NotADirectoryError, ValueError, UnicodeDecodeError, UnicodeError, UnicodeEncodeError) as err:
     print("Could not read file '{}' because : {}".format(Path(args.file), err))
     exit(0)
-print("train dataset written to '{}'\ncross validation dataset written to : '{}'".format(args.train_output, args.cv_output))
+print("train dataset written to '{}'. Size: {}".format(args.train_output, df_train.shape))
+print("cross validation dataset written to : '{}'. Size: {}".format(args.cv_output, df_test.shape))
 
