@@ -70,10 +70,12 @@ if __name__ == "__main__":
             model.fit(np.delete(df_train.data, args.target_col, axis=1),
                       df_train.data[:, args.target_col],
                       gradient_checking=args.grad_checking, verbose=0, nb_iteration=args.step)
-            test_f1score, test_loss = wrapper_fct.check_test(target_col=args.target_col, df=df_test, model=model, verbose=0)
             if args.verbose > 0:
-                print("iteration:{} ; train_loss={:.3f} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}%".format(
-                    model.nb_iteration_ran, model.cost_history[-1], test_loss, model.f1score[0] * 100, test_f1score * 100))
+                test_f1score, test_loss = wrapper_fct.check_test(target_col=args.target_col, df=df_test, model=model, verbose=0)
+                delta_cost = (model.cost_history[-2] - model.cost_history[-1]) * 100 / model.cost_history[-1]
+                print("iteration:{} ; train_loss={} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}% ; "
+                      "delta_loss = {} ".format(model.nb_iteration_ran, model.cost_history[-1], test_loss,
+                                                model.f1score[0] * 100, test_f1score * 100, delta_cost))
     model.save_model(Path("model/{}.pkl".format(args.name)))
     if args.verbose > 0:
         print("Training completed.\nModel saved to '{}'\n".format(Path("model/{}.pkl".format(args.name))))

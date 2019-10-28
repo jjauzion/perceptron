@@ -143,7 +143,7 @@ class LabelEncoder:
         elif order == "keep":
             self._class = list(collections.OrderedDict.fromkeys(classes))
 
-    def transform(self, classes, ignore_unknown_class=True):
+    def transform(self, classes, ignore_unknown_class=False):
         try:
             if isinstance(classes, list):
                 label = [float(self._class.index(elm)) for elm in classes]
@@ -153,8 +153,12 @@ class LabelEncoder:
                 label = float(self._class.index(classes))
         except ValueError:
             if ignore_unknown_class:
+                print("WARNING: One of the given name is not a valid class name.\nGot '{}' ; Valid class name : '{}'"
+                      .format(classes, self._class))
                 return np.nan
             else:
+                print("WARNING: One of the given name is not a valid class name.\nGot '{}' ; Valid class name : '{}'"
+                      .format(classes, self._class))
                 raise ValueError("One of the given name is not a valid class name.\nGot '{}' ; Valid class name : '{}'"
                                  .format(classes, self._class))
         except TypeError:
