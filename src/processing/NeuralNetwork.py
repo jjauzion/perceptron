@@ -206,6 +206,7 @@ class NeuralNetwork(Model.Classification):
                 if X is None or Y is None:
                     raise AttributeError("X and Y param are required for gradient checking")
                 self._gradient_checking(X, Y, l, w_grad)
+            # print("w_grad=\n", w_grad)
             self.weight[l] -= self.learning_rate * w_grad
 
     def _check_fit_input(self, X, y, nb_iteration, max_iter):
@@ -218,7 +219,7 @@ class NeuralNetwork(Model.Classification):
         if y.ndim > 1 or y.shape[0] != X.shape[0]:
             raise AttributeError("y shall be a vector of same lenght as X.shape[0]='{}'. Got y.shape='{}'".format(X.shape[0], y.shape))
 
-    def fit(self, X, y, nb_iteration=1000, verbose=1, gradient_checking=False, max_iter=10000):
+    def fit(self, X, y, nb_iteration=1000, batch_size=0, verbose=1, gradient_checking=False, max_iter=10000):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
@@ -229,27 +230,34 @@ class NeuralNetwork(Model.Classification):
         """
         self._check_fit_input(X, y, nb_iteration, max_iter)
         Y = toolbox.one_hot_encode(y) if self.nb_output > 1 else y.reshape(-1, 1)
-        Y_pred = np.ones((X.shape[0], self.topology[-1])) * -1
         i = 0
         delta_cost = 100
+        batch = list(range(0, X.shape[0] + batch_size, batch_size)) if batch_size > 0 else [0, X.shape[0]]
         while i < nb_iteration if isinstance(nb_iteration, int) else delta_cost > 0.01 and i < max_iter:
-            if verbose >= 1 and (i + 1) % 100 == 0:
-                print("iteration: {}".format(self.nb_iteration_ran + i + 1))
-                print("delta cost = {}%".format(round(delta_cost, 3)))
-            for l in range(len(self.topology) - 1):
-                self.w_delta[l][:] = 0
-            for m in range(X.shape[0]):
-                self.unit[0] = X[m]
-                self._forward_propagation()
-                Y_pred[m] = self.unit[-1]
-                self._backpropagation(Y[m])
-            self._update_weight(X.shape[0], gradient_checking=gradient_checking, X=X, Y=Y)
-            self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
-            if i >= 1:
-                delta_cost = (self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1]
+            p = np.random.permutation(X.shape[0])
+            X, Y = X[p], Y[p]
+            for j in range(1, len(batch)):
+                batch_X = X[batch[j - 1]:batch[j]]
+                batch_Y = Y[batch[j - 1]:batch[j]]
+                Y_pred = np.ones((batch_X.shape[0], self.topology[-1])) * -1
+                if verbose >= 1 and (i + 1) % 100 == 0:
+                    print("iteration: {}".format(self.nb_iteration_ran + i + 1))
+                    print("delta cost = {}%".format(round(delta_cost, 3)))
+                for l in range(len(self.topology) - 1):
+                    self.w_delta[l][:] = 0
+                for m in range(batch_X.shape[0]):
+                    self.unit[0] = batch_X[m]
+                    self._forward_propagation()
+                    Y_pred[m] = self.unit[-1]
+                    self._backpropagation(batch_Y[m])
+                self._update_weight(batch_X.shape[0], gradient_checking=gradient_checking, X=batch_X, Y=batch_Y)
+                self.cost_history.append(self._compute_cost(Y=batch_Y, H=Y_pred))
+                if i >= 1:
+                    delta_cost = abs(self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1]
             i += 1
         self.nb_iteration_ran += i
-        y_pred = self._to_class_id(Y_pred)
+        y_pred, _ = self.predict(X)
+        y = self._to_class_id(Y)
         self.compute_accuracy(y, y_pred)
         if verbose >= 1:
             print("Training completed!")
