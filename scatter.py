@@ -30,8 +30,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, default="data/dataset_train.csv", help="file to describe, shall be csv format")
     parser.add_argument("-a", "--all", action="store_true", help="Scatter plot of all column in the dataset")
-    parser.add_argument("-cx", "--columnX", type=is_positive_int, help="column index to plot on x axis")
-    parser.add_argument("-cy", "--columnY", type=is_positive_int, help="column index to plot on y axis")
+    parser.add_argument("-cx", "--columnX", type=is_positive_int, default=0, help="column index to plot on x axis")
+    parser.add_argument("-cy", "--columnY", type=is_positive_int, default=0, help="column index to plot on y axis")
+    parser.add_argument("-cc", "--color_column", type=is_positive_int, default=1, help="One color for each unique value of the color_column")
     args = parser.parse_args()
     df = dataframe.DataFrame()
     try:
@@ -45,4 +46,4 @@ if __name__ == "__main__":
     if args.all:
         scatter_all(df)
     else:
-        df.scatter(args.columnX, args.columnY, color_col=1)
+        df.scatter(args.columnX, args.columnY, color_col=args.color_column)
