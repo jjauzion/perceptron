@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("-trf", "--train_file", type=str, default="data/data_train.csv", help="train dataset file, csv format")
     parser.add_argument("-tef", "--test_file", type=str, default="data/data_test.csv", help="test dataset file, csv format")
     parser.add_argument("-nh", "--no_header", action="store_true", help="The 1st line of the dataset is data not a header")
-    parser.add_argument("-t", "--topology", type=check_arg.is_positive_int, nargs="+", default=[31, 16, 2], help="topology of the NN, ex: -t 4 4 1")
+    parser.add_argument("-t", "--topology", type=check_arg.is_positive_int, nargs="+", default=[0, 16, 2], help="topology of the NN, ex: -t 4 4 1")
     parser.add_argument("-gc", "--grad_checking", action="store_true", help="Activate the gradient checking. Only for code debbuging.")
     parser.add_argument("-i", "--iteration", type=check_arg.is_positive_int, default=500, help="Number of iteration to run")
     parser.add_argument("-s", "--step", type=check_arg.is_strick_positive_int, default=100, help="Step betweeen two print report")
