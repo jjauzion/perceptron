@@ -5,10 +5,13 @@ import numpy as np
 
 from src import check_arg
 
+
+train_output = "data/data_train.csv"
+test_output = "data/data_test.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument("dataset", help="Path to the dataset to split")
-parser.add_argument("--train_output", default="data/data_train.csv", help="file where to save train dataset")
-parser.add_argument("--cv_output", default="data/data_test.csv", help="file where to save cross validation dataset")
+parser.add_argument("--train_output", default=train_output, help="file where to save train dataset. Default = '{}'".format(train_output))
+parser.add_argument("--cv_output", default=test_output, help="file where to save cross validation dataset. Default = '{}'".format(test_output))
 parser.add_argument("-r", "--ts_ratio", type=check_arg.is_percentage, default=0.8, help="ration of data to put in the training set (eg: 0.8 for 80%%)")
 parser.add_argument("-nh", "--no_header", action="store_true", help="Dataset has no header on the first line")
 args = parser.parse_args()

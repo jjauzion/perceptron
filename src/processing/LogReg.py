@@ -71,7 +71,7 @@ class LogReg(Model.Classification):
             H = self._compute_hypothesis(X)
             self.weight = self._update_weight(X, Y, H)
             self.cost_history.append(self._compute_cost(X, Y, H))
-        self.nb_iteration_ran += i + 1
+        self.nb_epoch_ran += i + 1
         Y_pred = self._compute_hypothesis(X)
         y_pred = self._to_class_id(Y_pred)
         self.compute_accuracy(y, y_pred)
