@@ -71,10 +71,12 @@ class NeuralNetwork(Model.Classification):
 
     def describe(self):
         """Print model characterisic"""
-        print("Model: {}".format(self.name))
-        print("Topology: {}".format(self.topology))
         print("Weights :\n{}".format(self.weight))
-        print("\nPerformance:")
+        print("Model name: {}".format(self.name))
+        print("Topology: {}".format(self.topology))
+        print("Activation function: {}".format(self.activation_function))
+        print("Trained on {} epoch".format(self.nb_epoch_ran))
+        print("Performance:")
         self.print_accuracy()
 
     def _compute_hypothesis_with_custom_weight(self, X, weight, layer):
@@ -151,9 +153,10 @@ class NeuralNetwork(Model.Classification):
         else:
             cost = -1 / Y.shape[0] * (np.sum(np.row_stack(Y) * np.log(H)))
         regul = 0
-        for l in range(len(self.topology) - 1):
-            regul += np.sum(self.weight[l] ** 2)
-        regul = regul * self.regularization / (2 * Y.shape[0])
+        if self.regularization != 0:
+            for l in range(len(self.topology) - 1):
+                regul += np.sum(self.weight[l] ** 2)
+            regul = regul * self.regularization / (2 * Y.shape[0])
         return cost + regul
 
     def _compute_layer_val(self, j):
@@ -209,31 +212,31 @@ class NeuralNetwork(Model.Classification):
             # print("w_grad=\n", w_grad)
             self.weight[l] -= self.learning_rate * w_grad
 
-    def _check_fit_input(self, X, y, nb_iteration, max_iter):
-        if nb_iteration != "auto" and not isinstance(nb_iteration, int):
-            raise AttributeError("nb_iteration shall either be an int or set to 'auto'. Got '{}'".format(nb_iteration))
-        if not isinstance(max_iter, int):
-            raise AttributeError("max_iter shall be an int. Got '{}'".format(nb_iteration))
+    def _check_fit_input(self, X, y, nb_epoch, max_epoch):
+        if nb_epoch != "auto" and not isinstance(nb_epoch, int):
+            raise AttributeError("nb_epoch shall either be an int or set to 'auto'. Got '{}'".format(nb_epoch))
+        if not isinstance(max_epoch, int):
+            raise AttributeError("max_epoch shall be an int. Got '{}'".format(nb_epoch))
         if X.shape[1] != self.topology[0]:
             raise AttributeError("X.shape[1]='{}' does not match with the network topology[0]='{}'".format(X.shape[1], self.topology[0]))
         if y.ndim > 1 or y.shape[0] != X.shape[0]:
-            raise AttributeError("y shall be a vector of same lenght as X.shape[0]='{}'. Got y.shape='{}'".format(X.shape[0], y.shape))
+            raise AttributeError("y shall be a vector of same length as X.shape[0]='{}'. Got y.shape='{}'".format(X.shape[0], y.shape))
 
-    def fit(self, X, y, nb_iteration=1000, batch_size=0, verbose=1, gradient_checking=False, max_iter=10000):
+    def fit(self, X, y, nb_epoch=1000, batch_size=0, verbose=1, gradient_checking=False, max_epoch=10000):
         """
 
         :param X: matrix of shape (n_samples, n_feature)
         :param y: vector of size n_samples
-        :param nb_iteration: number of iteration to run. If 'auto', will run until delta_cost < 0.01% or max_iter
+        :param nb_epoch: number of epoch to run. If 'auto', will run until delta_cost < 0.01% or max_epoch
         :param gradient_checking: If True, enable the gradient checking at each iteration
         :param verbose: verbosity level -> 0: nothing is printed ; 1: minimal printing ; 2:advance print
         """
-        self._check_fit_input(X, y, nb_iteration, max_iter)
+        self._check_fit_input(X, y, nb_epoch, max_epoch)
         Y = toolbox.one_hot_encode(y) if self.nb_output > 1 else y.reshape(-1, 1)
         i = 0
         delta_cost = 100
         batch = list(range(0, X.shape[0] + batch_size, batch_size)) if batch_size > 0 else [0, X.shape[0]]
-        while i < nb_iteration if isinstance(nb_iteration, int) else delta_cost > 0.01 and i < max_iter:
+        while i < nb_epoch if isinstance(nb_epoch, int) else delta_cost > 0.01 and i < max_epoch:
             p = np.random.permutation(X.shape[0])
             X, Y = X[p], Y[p]
             for j in range(1, len(batch)):
@@ -241,7 +244,7 @@ class NeuralNetwork(Model.Classification):
                 batch_Y = Y[batch[j - 1]:batch[j]]
                 Y_pred = np.ones((batch_X.shape[0], self.topology[-1])) * -1
                 if verbose >= 1 and (i + 1) % 100 == 0:
-                    print("iteration: {}".format(self.nb_iteration_ran + i + 1))
+                    print("iteration: {}".format(self.nb_epoch_ran + i + 1))
                     print("delta cost = {}%".format(round(delta_cost, 3)))
                 for l in range(len(self.topology) - 1):
                     self.w_delta[l][:] = 0
@@ -251,12 +254,13 @@ class NeuralNetwork(Model.Classification):
                     Y_pred[m] = self.unit[-1]
                     self._backpropagation(batch_Y[m])
                 self._update_weight(batch_X.shape[0], gradient_checking=gradient_checking, X=batch_X, Y=batch_Y)
-                self.cost_history.append(self._compute_cost(Y=batch_Y, H=Y_pred))
-                if i >= 1:
-                    delta_cost = abs(self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1]
+            _, Y_pred = self.predict(X, verbose=0)
+            self.cost_history.append(self._compute_cost(Y=Y, H=Y_pred))
+            if i >= 1:
+                delta_cost = abs(self.cost_history[-2] - self.cost_history[-1]) * 100 / self.cost_history[-1]
             i += 1
-        self.nb_iteration_ran += i
-        y_pred, _ = self.predict(X)
+        self.nb_epoch_ran += i
+        y_pred, _ = self.predict(X, verbose=0)
         y = self._to_class_id(Y)
         self.compute_accuracy(y, y_pred)
         if verbose >= 1:

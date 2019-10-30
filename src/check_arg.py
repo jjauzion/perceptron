@@ -19,3 +19,10 @@ def is_positive_int(value):
     if i_value < 0:
         raise argparse.ArgumentTypeError("'{}' is not a valid positive int value.".format(value))
     return i_value
+
+
+def is_strick_positive_int(value):
+    i_value = int(value)
+    if i_value <= 0:
+        raise argparse.ArgumentTypeError("'{}' is not a valid positive int value.".format(value))
+    return i_value

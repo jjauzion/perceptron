@@ -11,10 +11,10 @@ class Classification:
     def __init__(self, learning_rate=0.1, regularization_rate=0, nb_output_unit=1, model_name=None):
         """
 
-        :param nb_iteration:
         :param learning_rate:
         :param regularization_rate:
         :param model_name:
+        :param nb_output_unit:
         """
         self.learning_rate = learning_rate
         self.regularization = 0 if regularization_rate is None else regularization_rate
@@ -28,13 +28,13 @@ class Classification:
         self.accuracy = -1
         self.cost_history = []
         self.weight = None
-        self.nb_iteration_ran = 0
+        self.nb_epoch_ran = 0
 
     def describe(self):
         """Print model characterisic"""
         print("Model: {}".format(self.name))
-        print("Trained on {} iterations".format(self.nb_iteration_ran))
-        print("\nPerformance:")
+        print("Trained on {} epoch".format(self.nb_epoch_ran))
+        print("\nPerformance on training set:")
         self.print_accuracy()
 
     def compute_accuracy(self, y, y_pred):

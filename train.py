@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--topology", type=check_arg.is_positive_int, nargs="+", default=[31, 16, 2], help="topology of the NN, ex: -t 4 4 1")
     parser.add_argument("-gc", "--grad_checking", action="store_true", help="Activate the gradient checking. Only for code debbuging.")
     parser.add_argument("-i", "--iteration", type=check_arg.is_positive_int, default=500, help="Number of iteration to run")
-    parser.add_argument("-s", "--step", type=check_arg.is_positive_int, default=100, help="Step betweeen two print report")
+    parser.add_argument("-s", "--step", type=check_arg.is_strick_positive_int, default=100, help="Step betweeen two print report")
     parser.add_argument("-lr", "--learning_rate", type=check_arg.is_positive, default=0.1, help="learning rate")
     parser.add_argument("-m", "--model", type=str, help="load an existing model to pursue training")
     parser.add_argument("-n", "--name", type=str, default="model", help="name of the model. Will be used to save the model to a pkl file")
@@ -72,19 +72,19 @@ if __name__ == "__main__":
     if args.iteration == 0:
         model.fit(np.delete(df_train.data, args.target_col, axis=1),
                   df_train.data[:, args.target_col],
-                  gradient_checking=args.grad_checking, verbose=args.verbose, nb_iteration="auto",
+                  gradient_checking=args.grad_checking, verbose=args.verbose, nb_epoch="auto",
                   batch_size=args.batch_size)
     else:
         for i in range(args.step, args.iteration + args.step, args.step):
             model.fit(np.delete(df_train.data, args.target_col, axis=1),
                       df_train.data[:, args.target_col],
-                      gradient_checking=args.grad_checking, verbose=0, nb_iteration=args.step,
+                      gradient_checking=args.grad_checking, verbose=0, nb_epoch=args.step,
                       batch_size=args.batch_size)
-            if args.verbose > 0:
+            if args.verbose > 0 and len(model.cost_history) > 1:
                 test_f1score, test_loss = wrapper_fct.check_test(target_col=args.target_col, df=df_test, model=model, verbose=0)
-                delta_cost = (model.cost_history[-2] - model.cost_history[-1]) * 100 / model.cost_history[-1]
-                print("iteration:{} ; train_loss={:.6f} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}% ;"
-                      " delta_loss = {:.6f} ".format(model.nb_iteration_ran, model.cost_history[-1], test_loss,
+                delta_cost = abs(model.cost_history[-2] - model.cost_history[-1]) * 100 / model.cost_history[-1]
+                print("epoch:{} ; train_loss={:.6f} ; test_loss={:.3f} ; train_score={:.3f}% ; test_score={:.3f}% ;"
+                      " delta_loss = {:.6f} ".format(model.nb_epoch_ran, model.cost_history[-1], test_loss,
                                                      model.f1score[0] * 100, test_f1score * 100, delta_cost))
     model.save_model(Path("model/{}.pkl".format(args.name)))
     if args.verbose > 0:
